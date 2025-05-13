@@ -8,6 +8,12 @@ class Piece(object):
     def __init__(self, type=EMPTY):
         self.type = type
 
+    def __str__(self):
+        return str(self.type)
+
+    def __repr__(self):
+        return str(self)
+
     def is_empty(self):
         return self.type == self.EMPTY
 

@@ -5,6 +5,7 @@ from settings import *
 class State(object):
     def __init__(self):
         self.tiles = self.initial_state()
+        self.max_player = True
 
     def initial_state(self):
         matrix = [Piece() for _ in range(COLS * ROWS)]
@@ -17,6 +18,19 @@ class State(object):
                     matrix[r * COLS + c].type = Piece.LIGHT_BASE
                     continue
         return matrix
+
+    def __str__(self):
+        output = []
+        for r in range(ROWS):
+            row = []
+            for c in range(COLS):
+                row.append(str(self.tiles[r * COLS + c]))
+            row.append("\n")
+            output.append(" ".join(row))
+        return "".join(output)
+
+    def __repr__(self):
+        return str(self)
 
     def __getitem__(self, tile) -> Piece:
         assert 0 <= tile <= ROWS * COLS, "Tile is outside the board!"
