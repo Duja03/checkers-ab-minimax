@@ -1,47 +1,47 @@
 class Piece(object):
-    EMPTY = 0
-    LIGHT_BASE = 1
-    DARK_BASE = 2
-    LIGHT_QUEEN = 3
-    DARK_QUEEN = 4
+    BASE = 1
+    QUEEN = 2
+    LIGHT = 4
+    DARK = 8
 
-    def __init__(self, type=EMPTY):
+    def __init__(self, type=BASE, color=None):
         self.type = type
+        self.color = color
 
     def __str__(self):
-        return str(self.type)
+        return (
+            "0 "
+            if self.is_empty()
+            else str(
+                self.color | self.type,
+            ).ljust(2, " ")
+        )
 
     def __repr__(self):
         return str(self)
 
+    def set_empty(self):
+        self.color = None
+
     def is_empty(self):
-        return self.type == self.EMPTY
+        return self.color == None
 
     def is_light(self):
-        return not self.is_empty() and (
-            self.type == self.LIGHT_BASE or self.type == self.LIGHT_QUEEN
-        )
+        return not self.is_empty() and self.color == self.LIGHT
 
     def is_dark(self):
-        return not self.is_empty() and not self.is_light()
+        return not self.is_empty() and self.color == self.DARK
 
     def is_queen(self):
-        return not self.is_empty() and (
-            self.type == self.LIGHT_QUEEN or self.type == self.DARK_QUEEN
-        )
+        return not self.is_empty() and self.type == self.QUEEN
+
+    def is_base(self):
+        return not self.is_empty() and self.type == self.BASE
 
     def promote(self):
-        assert not self.is_empty(), "Empty tile can't be promoted!"
-        assert not self.is_queen(), "Tile is already a queen, can't be promoted!"
-        if self.is_light():
-            self.type = self.LIGHT_QUEEN
-        else:
-            self.type = self.DARK_QUEEN
+        assert self.is_base(), "Tile can't be promoted!"
+        self.type = self.QUEEN
 
     def demote(self):
-        assert not self.is_empty(), "Empty tile can't be demoted!"
-        assert self.is_queen(), "Tile is not a queen, can't be demoted!"
-        if self.is_light():
-            self.type = self.LIGHT_BASE
-        else:
-            self.type = self.DARK_BASE
+        assert self.is_queen(), "Tile can't be demoted!"
+        self.type = self.BASE
