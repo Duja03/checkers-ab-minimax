@@ -1,47 +1,61 @@
-class Piece(object):
-    BASE = 1
-    QUEEN = 2
-    LIGHT = 4
-    DARK = 8
+from enum import Enum
 
-    def __init__(self, type=BASE, color=None):
+
+class Color(Enum):
+    LIGHT = 1
+    DARK = 2
+
+
+class Type(Enum):
+    EMPTY = 1
+    BASE = 2
+    QUEEN = 3
+
+
+class Piece(object):
+    def __init__(self, type=Type.EMPTY, color=Color.LIGHT):
         self.type = type
         self.color = color
 
     def __str__(self):
-        return (
-            "0 "
-            if self.is_empty()
-            else str(
-                self.color | self.type,
-            ).ljust(2, " ")
-        )
+        if self.type == Type.BASE:
+            if self.color == Color.LIGHT:
+                return "1 "
+            else:
+                return "2 "
+        elif self.type == Type.QUEEN:
+            if self.color == Color.LIGHT:
+                return "11"
+            else:
+                return "22"
+        else:
+            return "0 "
 
     def __repr__(self):
         return str(self)
 
     def set_empty(self):
-        self.color = None
+        self.type = Type.EMPTY
 
-    def is_empty(self):
-        return self.color == None
+    def empty(self):
+        return self.type == Type.EMPTY
 
     def is_light(self):
-        return not self.is_empty() and self.color == self.LIGHT
+        return not self.empty() and self.color == Color.LIGHT
 
     def is_dark(self):
-        return not self.is_empty() and self.color == self.DARK
+        return not self.empty() and self.color == Color.DARK
 
     def is_queen(self):
-        return not self.is_empty() and self.type == self.QUEEN
+        return not self.empty() and self.type == Type.QUEEN
 
     def is_base(self):
-        return not self.is_empty() and self.type == self.BASE
+        return not self.empty() and self.type == Type.BASE
 
     def promote(self):
         assert self.is_base(), "Tile can't be promoted!"
-        self.type = self.QUEEN
+        self.type = Type.QUEEN
 
     def demote(self):
         assert self.is_queen(), "Tile can't be demoted!"
-        self.type = self.BASE
+        self.type = Type.BASE
