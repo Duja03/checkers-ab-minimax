@@ -50,7 +50,7 @@ class Renderer(object):
 
             if piece.is_queen():
                 pygame.draw.circle(
-                    self._screen,
+                    self.window,
                     shadow,
                     (center_x, center_y - PIECE_HEIGHT / 2),
                     QUEEN_RADIUS,

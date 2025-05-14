@@ -26,6 +26,7 @@ class Application(object):
                 if event.type == pygame.QUIT:  # Handle window close event
                     self.running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
+                    print(self.state.get_all_turn_moves())
                     """selected_tile = self._get_selected_tile(event.pos)
 
                     if event.button == 1:
