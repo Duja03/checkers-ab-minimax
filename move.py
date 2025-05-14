@@ -18,9 +18,9 @@ class Move(object):
     def __eq__(self, other):
         return other.start_tile == self.start_tile and other.dest_tile == self.dest_tile
 
-    def add_eaten_tile(self, state, tile):
+    def add_eaten_tile(self, tile, type, color):
         assert 0 <= tile <= ROWS * COLS, "Eaten tile is outside the board!"
-        self.eaten_tiles.add((tile, state[tile].type, state[tile].color))
+        self.eaten_tiles.add((tile, type, color))
 
     def inverse_move(self):
         return Move(self.dest_tile, self.eaten_tiles, self.eaten_tiles)

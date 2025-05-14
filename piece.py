@@ -52,6 +52,9 @@ class Piece(object):
     def is_base(self):
         return not self.empty() and self.type == Type.BASE
 
+    def is_opposite_color(self, from_color: Color):
+        return self.color != from_color
+
     def promote(self):
         assert self.is_base(), "Tile can't be promoted!"
         self.type = Type.QUEEN

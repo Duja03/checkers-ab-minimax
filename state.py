@@ -20,6 +20,9 @@ class State(object):
                     matrix[r * COLS + c].type = Type.BASE
                     matrix[r * COLS + c].color = Color.LIGHT
                     continue
+        # Jump testing:
+        matrix[35].color = Color.DARK
+        matrix[35].type = Type.BASE
         return matrix
 
     def __str__(self):
@@ -52,30 +55,53 @@ class State(object):
         return all_moves
 
     def generate_moves_for_tile(self, tile, all_moves: list):
+        # for testing:
+        piece = self.tiles[tile]
+        if piece.empty() or piece.color != self.turn_color:
+            return
+
         row = tile // ROWS
         col = tile % COLS
-        piece = self.tiles[tile]
         piece_color = piece.color
 
         forward = -1 if piece_color == Color.LIGHT else 1
-        # List of "short diagonals" in terms of (row, col):
-        srt_diag = [
-            (row + forward, col - 1),
-            (row + forward, col + 1),
+        # List of vectors for "short diagonal" in terms of (delta_row, delta_col):
+        srt_vecs = [
+            (forward, -1),
+            (forward, 1),
         ]
 
         if piece.is_queen():
-            srt_diag.extend([(row - forward, col - 1), (row - forward, col + 1)])
+            srt_vecs.extend([(-forward, -1), (-forward, 1)])
 
-        for srt_cords in srt_diag:
-            r, c = srt_cords
-            # Validate new row and col, so they are inside the board:
-            if r < 0 or r >= ROWS or c < 0 or c >= COLS:
+        for vec in srt_vecs:
+            drow = vec[0]
+            dcol = vec[1]
+
+            srt_row = row + drow
+            srt_col = col + dcol
+            # Validate short row and col, so they are inside the board:
+            if not (0 <= srt_row < ROWS) or not (0 <= srt_col < COLS):
                 continue
 
-            srt_tile = r * COLS + c
-            if self.tiles[srt_tile].empty():
+            srt_tile = srt_row * COLS + srt_col
+            srt_piece = self.tiles[srt_tile]
+            if srt_piece.empty():
                 all_moves.append(Move(tile, srt_tile))
+            elif srt_piece.is_opposite_color(piece_color):
+                lng_row = srt_row + drow
+                lng_col = srt_col + dcol
+                # Validate long row and col, so they are inside the board:
+                if not (0 <= lng_row < ROWS) or not (0 <= lng_col < COLS):
+                    continue
+
+                lng_tile = lng_row * COLS + lng_col
+                lng_piece = self.tiles[lng_tile]
+                if lng_piece.empty():
+                    move = Move(tile, lng_tile)
+                    move.add_eaten_tile(srt_tile, srt_piece.type, srt_piece.color)
+                    all_moves.append(move)
+                    # TODO: Recursively add new potential jumps...
 
     def do_move(self, move: Move):
         assert (
