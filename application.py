@@ -55,6 +55,7 @@ class Application(object):
             # TODO: Give a choice when multiple moves lead to same place...
             if len(found_moves) != 0:
                 self.state.do_move(found_moves[0])
+                self.state.change_turn_color()
             self.deselect()
 
     def run(self):

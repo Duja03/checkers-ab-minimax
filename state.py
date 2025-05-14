@@ -45,6 +45,12 @@ class State(object):
     def __setitem__(self, tile, piece):
         raise Exception("Nema setovanja na ovaj nacin, koristi .color i .type!")
 
+    def change_turn_color(self):
+        if self.turn_color == Color.DARK:
+            self.turn_color = Color.LIGHT
+        else:
+            self.turn_color = Color.DARK
+
     def get_all_turn_moves(self):
         all_moves = []
         for tile in range(COLS * ROWS):
@@ -54,54 +60,116 @@ class State(object):
             self.generate_moves_for_tile(tile, all_moves)
         return all_moves
 
-    def generate_moves_for_tile(self, tile, all_moves: list):
-        # for testing:
-        piece = self.tiles[tile]
-        if piece.empty() or piece.color != self.turn_color:
+    def generate_moves_for_tile(self, original_tile, all_moves: list):
+        o_piece = self.tiles[original_tile]
+        if o_piece.empty() or o_piece.color != self.turn_color:
             return
+        o_row = original_tile // ROWS
+        o_col = original_tile % COLS
+        o_color = o_piece.color
 
-        row = tile // ROWS
-        col = tile % COLS
-        piece_color = piece.color
-
-        forward = -1 if piece_color == Color.LIGHT else 1
-        # List of vectors for "short diagonal" in terms of (delta_row, delta_col):
-        srt_vecs = [
-            (forward, -1),
-            (forward, 1),
-        ]
-
-        if piece.is_queen():
+        # Define what does it mean to move "forward" based on color:
+        forward = -1 if o_color == Color.LIGHT else 1
+        # List of vectors for "forward left" and "forward right"
+        # in terms of (delta_row, delta_col):
+        srt_vecs = [(forward, -1), (forward, 1)]
+        if o_piece.is_queen():
             srt_vecs.extend([(-forward, -1), (-forward, 1)])
 
         for vec in srt_vecs:
-            drow = vec[0]
-            dcol = vec[1]
+            dr, dc = vec
 
-            srt_row = row + drow
-            srt_col = col + dcol
-            # Validate short row and col, so they are inside the board:
-            if not (0 <= srt_row < ROWS) or not (0 <= srt_col < COLS):
+            # Calculate short diagonal coords (forward left, ...):
+            s_row, s_col = o_row + dr, o_col + dc
+            # Validate so that they are inside the board:
+            if not (0 <= s_row < ROWS) or not (0 <= s_col < COLS):
                 continue
 
-            srt_tile = srt_row * COLS + srt_col
-            srt_piece = self.tiles[srt_tile]
-            if srt_piece.empty():
-                all_moves.append(Move(tile, srt_tile))
-            elif srt_piece.is_opposite_color(piece_color):
-                lng_row = srt_row + drow
-                lng_col = srt_col + dcol
-                # Validate long row and col, so they are inside the board:
-                if not (0 <= lng_row < ROWS) or not (0 <= lng_col < COLS):
+            s_tile = s_row * COLS + s_col
+            s_piece = self.tiles[s_tile]
+
+            # Free space => valid move:
+            if s_piece.empty():
+                all_moves.append(Move(original_tile, s_tile))
+            # We can't jump over our pieces:
+            elif s_piece.is_opposite_color(o_color):
+                # Checking for tile in same direction that is
+                # behind the opponent piece:
+                l_row, l_col = s_row + dr, s_col + dc
+                if not (0 <= l_row < ROWS) or not (0 <= l_col < COLS):
                     continue
 
-                lng_tile = lng_row * COLS + lng_col
-                lng_piece = self.tiles[lng_tile]
-                if lng_piece.empty():
-                    move = Move(tile, lng_tile)
-                    move.add_eaten_tile(srt_tile, srt_piece.type, srt_piece.color)
+                l_tile = l_row * COLS + l_col
+                l_piece = self.tiles[l_tile]
+
+                # Free behind enemy => valid eating move:
+                if l_piece.empty():
+                    # Accumulate eaten tiles for potential jumping  moves:
+                    eaten = [(s_tile, s_piece.type, s_piece.color)]
+
+                    move = Move(original_tile, l_tile)
+                    move.add_eaten_tile(s_tile, s_piece.type, s_piece.color)
                     all_moves.append(move)
-                    # TODO: Recursively add new potential jumps...
+
+                    # Recursively check for multiple jumps in a row:
+                    self.generate_jumping_moves(
+                        original_tile, l_tile, vec, all_moves, eaten
+                    )
+
+    def generate_jumping_moves(
+        self, original_tile, current_tile, dir, all_moves, eaten
+    ):
+        o_piece = self.tiles[original_tile]
+
+        c_row = current_tile // ROWS
+        c_col = current_tile % COLS
+        o_color = o_piece.color
+
+        # Same idea as with sort diagonals:
+        forward = -1 if o_color == Color.LIGHT else 1
+        srt_vecs = [(forward, -1), (forward, 1)]
+        if o_piece.is_queen():
+            dr, dc = dir
+            # This time we don't want to include direction that led us
+            # to current position, otherwise we will just go back and forth:
+            if dr != -forward and dc != 1:
+                srt_vecs.extend((-forward, 1))
+            if dr != -forward and dc != -1:
+                srt_vecs.extend((-forward, -1))
+
+        for vec in srt_vecs:
+            dr, dc = vec
+
+            s_row, s_col = c_row + dr, c_col + dc
+            # Validate so that they are inside the board:
+            if not (0 <= s_row < ROWS) or not (0 <= s_col < COLS):
+                continue
+
+            s_tile = s_row * COLS + s_col
+            s_piece = self.tiles[s_tile]
+            # This time we only continue if current position's
+            # short diagonal is occupied by opponent piece:
+            if s_piece.empty() or s_piece.same_color_as(o_color):
+                continue
+
+            l_row, l_col = s_row + dr, s_col + dc
+            if not (0 <= l_row < ROWS) or not (0 <= l_col < COLS):
+                continue
+
+            l_tile = l_row * COLS + l_col
+            l_piece = self.tiles[l_tile]
+            # Again, free behind enemy => valid eating move, and go again:
+            if l_piece.empty():
+                eaten.append((s_tile, s_piece.type, s_piece.color))
+                move = Move(original_tile, l_tile)
+                for e in eaten:
+                    ti, tp, cl = e
+                    move.add_eaten_tile(ti, tp, cl)
+                all_moves.append(move)
+
+                self.generate_jumping_moves(
+                    original_tile, l_tile, vec, all_moves, eaten
+                )
 
     def do_move(self, move: Move):
         assert (
