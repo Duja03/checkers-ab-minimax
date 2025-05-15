@@ -155,6 +155,7 @@ class State(object):
     def generate_jumping_moves(
         self, org_tile, current_tile, dir, all_moves, eaten, visited
     ):
+        visited = set(visited)
         if current_tile in visited:
             return
 

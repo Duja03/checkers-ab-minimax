@@ -13,7 +13,17 @@ class Move(object):
                 self.eaten_tiles.add(tile)
 
     def __str__(self):
-        return f"{{{self.start_tile} -> {self.dest_tile} [{self.eaten_tiles}]}}"
+        s_row = self.start_tile // ROWS
+        s_col = self.start_tile % COLS
+        d_row = self.dest_tile // ROWS
+        d_col = self.dest_tile % COLS
+        ans = [f"{{({s_row}, {s_col}) -> ({d_row}, {d_col}) njam ["]
+        for eaten in self.eaten_tiles:
+            row = eaten[0] // ROWS
+            col = eaten[0] % COLS
+            ans.append(f"({row}, {col})")
+        ans.append(f"]}}")
+        return " ".join(ans)
 
     def __repr__(self):
         return str(self)
