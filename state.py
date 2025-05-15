@@ -68,13 +68,7 @@ class State(object):
         o_col = original_tile % COLS
         o_color = o_piece.color
 
-        # Define what does it mean to move "forward" based on color:
-        forward = -1 if o_color == Color.LIGHT else 1
-        # List of vectors for "forward left" and "forward right"
-        # in terms of (delta_row, delta_col):
-        srt_vecs = [(forward, -1), (forward, 1)]
-        if o_piece.is_queen():
-            srt_vecs.extend([(-forward, -1), (-forward, 1)])
+        srt_vecs = self.get_direction_vectors(o_piece)
 
         for vec in srt_vecs:
             dr, dc = vec
@@ -116,6 +110,25 @@ class State(object):
                         original_tile, l_tile, vec, all_moves, eaten
                     )
 
+    def get_direction_vectors(self, piece: Piece, dir=(0, 0)):
+        vecs = []
+        dr, dc = dir
+        forward = -1 if piece.color == Color.LIGHT else 1
+        if not (-dr == forward and -dc == 1):
+            vecs.append((forward, 1))
+        if not (-dr == forward and -dc == -1):
+            vecs.append((forward, -1))
+
+        if piece.is_queen():
+            # This time we don't want to include direction that led us
+            # to current position, otherwise we will just go back and forth:
+            if not (-dr == -forward and -dc == 1):
+                vecs.append((-forward, 1))
+            if not (-dr == -forward and -dc == -1):
+                vecs.append((-forward, -1))
+
+        return vecs
+
     def generate_jumping_moves(
         self, original_tile, current_tile, dir, all_moves, eaten
     ):
@@ -124,18 +137,7 @@ class State(object):
         c_row = current_tile // ROWS
         c_col = current_tile % COLS
         o_color = o_piece.color
-
-        # Same idea as with sort diagonals:
-        forward = -1 if o_color == Color.LIGHT else 1
-        srt_vecs = [(forward, -1), (forward, 1)]
-        if o_piece.is_queen():
-            dr, dc = dir
-            # This time we don't want to include direction that led us
-            # to current position, otherwise we will just go back and forth:
-            if dr != -forward and dc != 1:
-                srt_vecs.extend((-forward, 1))
-            if dr != -forward and dc != -1:
-                srt_vecs.extend((-forward, -1))
+        srt_vecs = self.get_direction_vectors(o_piece, dir)
 
         for vec in srt_vecs:
             dr, dc = vec
