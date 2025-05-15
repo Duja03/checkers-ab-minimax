@@ -29,9 +29,16 @@ class Renderer(object):
     def draw_available_moves(self, state, moves):
         if len(moves) == 0:
             return
-        # Select starting tile, so we can extract info:
+
+        # Gather only unique destination tiles, so it is
+        # equally transparent, regardless of number of Moves
+        # that lead to that destination:
+        dests = set()
         for move in moves:
-            tile = move.dest_tile
+            dests.add(move.dest_tile)
+
+        # Select starting tile, so we can extract info:
+        for tile in dests:
             row = tile // ROWS
             col = tile % COLS
             x = col * TILE_SIZE

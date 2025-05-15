@@ -15,7 +15,7 @@ class Application(object):
         self.state = State()
 
         self.selected_tile = None
-        self.available_moves = []
+        self.available_moves = set()
 
     def draw_frame(self):
         self.renderer.draw_tiles()
@@ -31,7 +31,7 @@ class Application(object):
 
     def deselect(self):
         self.selected_tile = None
-        self.available_moves = []
+        self.available_moves = set()
 
     def filter_available_moves(self, selected):
         return list(

@@ -1,4 +1,4 @@
-from move import Move
+from move import EatenInfo, Move
 from piece import Color, Piece, Type
 from settings import *
 
@@ -75,7 +75,7 @@ class State(object):
             self.turn_color = Color.DARK
 
     def get_all_turn_moves(self):
-        all_moves = []
+        all_moves = set()
         for tile in range(COLS * ROWS):
             piece = self.tiles[tile]
             if piece.empty() or piece.color != self.turn_color:
@@ -83,7 +83,7 @@ class State(object):
             self.generate_moves_for_tile(tile, all_moves)
         return all_moves
 
-    def generate_moves_for_tile(self, org_tile, all_moves: list):
+    def generate_moves_for_tile(self, org_tile, all_moves: set):
         o_piece = self.tiles[org_tile]
         if o_piece.empty() or o_piece.color != self.turn_color:
             return
@@ -92,11 +92,10 @@ class State(object):
         o_color = o_piece.color
 
         srt_vecs = self.get_direction_vectors(o_piece)
-        visited = set([org_tile])
+        path = set([org_tile])
 
         for vec in srt_vecs:
             dr, dc = vec
-
             # Calculate short diagonal coords (forward left, ...):
             s_row, s_col = o_row + dr, o_col + dc
             # Validate so that they are inside the board:
@@ -108,7 +107,7 @@ class State(object):
 
             # Free space => valid move:
             if s_piece.empty():
-                all_moves.append(Move(org_tile, s_tile))
+                all_moves.add(Move(org_tile, s_tile))
             # We can't jump over our pieces:
             elif s_piece.is_opposite_color(o_color):
                 # Checking for tile in same direction that is
@@ -122,18 +121,16 @@ class State(object):
 
                 # Free behind enemy => valid eating move:
                 if l_piece.empty():
-                    # Accumulate eaten tiles for potential jumping  moves:
-                    eaten = [(s_tile, s_piece.type, s_piece.color)]
-                    all_moves.append(Move(org_tile, l_tile, eaten))
-
-                    # Recursively check for multiple jumps in a row:
+                    eaten = set([EatenInfo(s_tile, s_piece.type, s_piece.color)])
+                    all_moves.add(Move(org_tile, l_tile, eaten))
                     self.generate_jumping_moves(
-                        org_tile, l_tile, vec, all_moves, eaten, visited
+                        org_tile, l_tile, vec, all_moves, eaten, path
                     )
         for move in all_moves:
             print(move)
 
     def get_direction_vectors(self, piece: Piece, dir=(0, 0)):
+        # Default (0, 0) means we are not in recursive part:
         vecs = []
         dr, dc = dir
         forward = -1 if piece.color == Color.LIGHT else 1
@@ -153,13 +150,13 @@ class State(object):
         return vecs
 
     def generate_jumping_moves(
-        self, org_tile, current_tile, dir, all_moves, eaten, visited
+        self, org_tile, current_tile, dir, all_moves: set, eaten: set, path: set
     ):
-        visited = set(visited)
-        if current_tile in visited:
+        path = set(path)
+        if current_tile in path:
             return
 
-        visited.add(current_tile)
+        path.add(current_tile)
         o_piece = self.tiles[org_tile]
 
         c_row = current_tile // ROWS
@@ -171,14 +168,11 @@ class State(object):
             dr, dc = vec
 
             s_row, s_col = c_row + dr, c_col + dc
-            # Validate so that they are inside the board:
             if not (0 <= s_row < ROWS) or not (0 <= s_col < COLS):
                 continue
 
             s_tile = s_row * COLS + s_col
             s_piece = self.tiles[s_tile]
-            # This time we only continue if current position's
-            # short diagonal is occupied by opponent piece:
             if s_piece.empty() or s_piece.same_color_as(o_color):
                 continue
 
@@ -188,12 +182,12 @@ class State(object):
 
             l_tile = l_row * COLS + l_col
             l_piece = self.tiles[l_tile]
-            # Again, free behind enemy => valid eating move, and go again:
             if l_piece.empty():
-                eaten.append((s_tile, s_piece.type, s_piece.color))
-                all_moves.append(Move(org_tile, l_tile, eaten))
+                new_eaten = set(eaten)
+                new_eaten.add(EatenInfo(s_tile, s_piece.type, s_piece.color))
+                all_moves.add(Move(org_tile, l_tile, new_eaten))
                 self.generate_jumping_moves(
-                    org_tile, l_tile, vec, all_moves, eaten, visited
+                    org_tile, l_tile, vec, all_moves, new_eaten, path
                 )
 
     def do_move(self, move: Move):
@@ -221,8 +215,7 @@ class State(object):
         ):
             self.tiles[dest].promote()
 
-        for it in move.eaten_tiles:
-            ind, t, c = it
-            self.tiles[ind].set_empty()
+        for info in move.eaten_tiles:
+            self.tiles[info.tile_index].set_empty()
 
         self.change_turn_color()
