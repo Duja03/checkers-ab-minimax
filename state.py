@@ -5,7 +5,7 @@ from settings import *
 
 class State(object):
     def __init__(self):
-        self.tiles = self.initial_state()
+        self.tiles = self.test_state()
         self.turn_color = Color.LIGHT
 
     def initial_state(self):
@@ -20,9 +20,32 @@ class State(object):
                     matrix[r * COLS + c].type = Type.BASE
                     matrix[r * COLS + c].color = Color.LIGHT
                     continue
-        # Jump testing:
-        matrix[35].color = Color.DARK
-        matrix[35].type = Type.BASE
+        return matrix
+
+    def test_state(self):
+        matrix = [Piece(Type.EMPTY) for _ in range(COLS * ROWS)]
+        matrix[1].type = Type.QUEEN
+
+        matrix[10].type = Type.BASE
+        matrix[10].color = Color.DARK
+
+        matrix[12].type = Type.BASE
+        matrix[12].color = Color.DARK
+
+        matrix[14].type = Type.BASE
+        matrix[14].color = Color.DARK
+
+        matrix[28].type = Type.BASE
+        matrix[28].color = Color.DARK
+
+        matrix[30].type = Type.BASE
+        matrix[30].color = Color.DARK
+
+        matrix[44].type = Type.BASE
+        matrix[44].color = Color.DARK
+
+        matrix[46].type = Type.BASE
+        matrix[46].color = Color.DARK
         return matrix
 
     def __str__(self):
@@ -60,15 +83,16 @@ class State(object):
             self.generate_moves_for_tile(tile, all_moves)
         return all_moves
 
-    def generate_moves_for_tile(self, original_tile, all_moves: list):
-        o_piece = self.tiles[original_tile]
+    def generate_moves_for_tile(self, org_tile, all_moves: list):
+        o_piece = self.tiles[org_tile]
         if o_piece.empty() or o_piece.color != self.turn_color:
             return
-        o_row = original_tile // ROWS
-        o_col = original_tile % COLS
+        o_row = org_tile // ROWS
+        o_col = org_tile % COLS
         o_color = o_piece.color
 
         srt_vecs = self.get_direction_vectors(o_piece)
+        visited = set([org_tile])
 
         for vec in srt_vecs:
             dr, dc = vec
@@ -84,7 +108,7 @@ class State(object):
 
             # Free space => valid move:
             if s_piece.empty():
-                all_moves.append(Move(original_tile, s_tile))
+                all_moves.append(Move(org_tile, s_tile))
             # We can't jump over our pieces:
             elif s_piece.is_opposite_color(o_color):
                 # Checking for tile in same direction that is
@@ -100,15 +124,14 @@ class State(object):
                 if l_piece.empty():
                     # Accumulate eaten tiles for potential jumping  moves:
                     eaten = [(s_tile, s_piece.type, s_piece.color)]
-
-                    move = Move(original_tile, l_tile)
-                    move.add_eaten_tile(s_tile, s_piece.type, s_piece.color)
-                    all_moves.append(move)
+                    all_moves.append(Move(org_tile, l_tile, eaten))
 
                     # Recursively check for multiple jumps in a row:
                     self.generate_jumping_moves(
-                        original_tile, l_tile, vec, all_moves, eaten
+                        org_tile, l_tile, vec, all_moves, eaten, visited
                     )
+        for move in all_moves:
+            print(move)
 
     def get_direction_vectors(self, piece: Piece, dir=(0, 0)):
         vecs = []
@@ -130,9 +153,13 @@ class State(object):
         return vecs
 
     def generate_jumping_moves(
-        self, original_tile, current_tile, dir, all_moves, eaten
+        self, org_tile, current_tile, dir, all_moves, eaten, visited
     ):
-        o_piece = self.tiles[original_tile]
+        if current_tile in visited:
+            return
+
+        visited.add(current_tile)
+        o_piece = self.tiles[org_tile]
 
         c_row = current_tile // ROWS
         c_col = current_tile % COLS
@@ -163,14 +190,9 @@ class State(object):
             # Again, free behind enemy => valid eating move, and go again:
             if l_piece.empty():
                 eaten.append((s_tile, s_piece.type, s_piece.color))
-                move = Move(original_tile, l_tile)
-                for e in eaten:
-                    ti, tp, cl = e
-                    move.add_eaten_tile(ti, tp, cl)
-                all_moves.append(move)
-
+                all_moves.append(Move(org_tile, l_tile, eaten))
                 self.generate_jumping_moves(
-                    original_tile, l_tile, vec, all_moves, eaten
+                    org_tile, l_tile, vec, all_moves, eaten, visited
                 )
 
     def do_move(self, move: Move):
