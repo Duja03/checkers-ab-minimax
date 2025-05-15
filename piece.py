@@ -59,9 +59,11 @@ class Piece(object):
         return self.color == other_color
 
     def promote(self):
-        assert self.is_base(), "Tile can't be promoted!"
+        if self.is_queen():
+            return
         self.type = Type.QUEEN
 
     def demote(self):
-        assert self.is_queen(), "Tile can't be demoted!"
+        if self.is_base():
+            return
         self.type = Type.BASE

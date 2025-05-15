@@ -188,6 +188,16 @@ class State(object):
         self.tiles[dest].color = start_color
         self.tiles[dest].type = start_type
 
+        # Check for potential queen promotion:
+        row = dest // ROWS
+        dest_piece = self.tiles[dest]
+        if (dest_piece.color == Color.DARK and row == COLS - 1) or (
+            dest_piece.color == Color.LIGHT and row == 0
+        ):
+            self.tiles[dest].promote()
+
         for it in move.eaten_tiles:
             ind, t, c = it
             self.tiles[ind].set_empty()
+
+        self.change_turn_color()
