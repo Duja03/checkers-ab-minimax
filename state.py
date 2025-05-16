@@ -120,7 +120,15 @@ class State(object):
 
             # Free space => valid move:
             if s_piece.empty():
-                all_moves.add(Move(org_tile, s_tile))
+                move = Move(org_tile, s_tile)
+                # Check for potential queen promotion:
+                if o_piece.is_base() and (
+                    (o_piece.color == Color.DARK and s_row == ROWS - 1)
+                    or (o_piece.color == Color.LIGHT and s_row == 0)
+                ):
+                    move.set_as_promoted()
+
+                all_moves.add(move)
             # We can't jump over our pieces:
             elif s_piece.is_opposite_color(o_color):
                 # Checking for tile in same direction that is
@@ -135,7 +143,15 @@ class State(object):
                 # Free behind enemy => valid eating move:
                 if l_piece.empty():
                     eaten = set([EatenInfo(s_tile, s_piece.type, s_piece.color)])
-                    all_moves.add(Move(org_tile, l_tile, eaten))
+                    move = Move(org_tile, l_tile, eaten)
+                    # Check for potential queen promotion:
+                    if o_piece.is_base() and (
+                        (o_piece.color == Color.DARK and l_row == ROWS - 1)
+                        or (o_piece.color == Color.LIGHT and l_row == 0)
+                    ):
+                        move.set_as_promoted()
+
+                    all_moves.add(move)
                     self.generate_jumping_moves(
                         org_tile, l_tile, vec, all_moves, eaten, path
                     )
@@ -196,7 +212,16 @@ class State(object):
             if l_piece.empty():
                 new_eaten = set(eaten)
                 new_eaten.add(EatenInfo(s_tile, s_piece.type, s_piece.color))
-                all_moves.add(Move(org_tile, l_tile, new_eaten))
+
+                move = Move(org_tile, l_tile, new_eaten)
+                # Check for potential queen promotion:
+                if o_piece.is_base() and (
+                    (o_piece.color == Color.DARK and l_row == ROWS - 1)
+                    or (o_piece.color == Color.LIGHT and l_row == 0)
+                ):
+                    move.set_as_promoted()
+
+                all_moves.add(move)
                 self.generate_jumping_moves(
                     org_tile, l_tile, vec, all_moves, new_eaten, path
                 )
@@ -218,14 +243,11 @@ class State(object):
         self.tiles[dest].color = start_color
         self.tiles[dest].type = start_type
 
-        # Check for potential queen promotion:
-        row = dest // ROWS
-        dest_piece = self.tiles[dest]
-        if (dest_piece.color == Color.DARK and row == COLS - 1) or (
-            dest_piece.color == Color.LIGHT and row == 0
-        ):
+        # Promote if possible:
+        if move.promoted:
             self.tiles[dest].promote()
 
+        # removing eaten pieces:
         for info in move.eaten_tiles:
             self.tiles[info.tile_index].set_empty()
             if info.piece_color == Color.LIGHT:
@@ -236,5 +258,43 @@ class State(object):
                 if info.piece_type == Type.QUEEN:
                     self.dark_queens -= 1
                 self.total_darks -= 1
+
+        self.change_turn_color()
+
+    def undo_move(self, move: Move):
+        undo = move.inverse()
+        assert (
+            self.tiles[undo.start_tile].color != self.turn_color
+        ), "Move color is the same as turn color!"
+
+        start = undo.start_tile
+        dest = undo.dest_tile
+
+        start_piece = self.tiles[start]
+        start_color, start_type = start_piece.color, start_piece.type
+
+        # Updating start and dest tiles:
+        self.tiles[start].color = self.tiles[dest].color
+        self.tiles[start].type = self.tiles[dest].type
+        self.tiles[dest].color = start_color
+        self.tiles[dest].type = start_type
+
+        # Demote if possible:
+        if undo.promoted:
+            self.tiles[dest].demote()
+
+        # Reviving eaten pieces:
+        for info in move.eaten_tiles:
+            self.tiles[info.tile_index].color = info.piece_color
+            self.tiles[info.tile_index].type = info.piece_type
+
+            if info.piece_color == Color.LIGHT:
+                if info.piece_type == Type.QUEEN:
+                    self.light_queens += 1
+                self.total_lights += 1
+            else:
+                if info.piece_type == Type.QUEEN:
+                    self.dark_queens += 1
+                self.total_darks += 1
 
         self.change_turn_color()

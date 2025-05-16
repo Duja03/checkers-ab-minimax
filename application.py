@@ -27,6 +27,8 @@ class Application(object):
         self.selected_tile = None
         self.available_moves = set()
 
+        self.stack_of_moves = []
+
     def draw_frame(self):
         if self.game_state == GameState.MAIN_MENU:
             pass
@@ -69,7 +71,14 @@ class Application(object):
             # TODO: Give a choice when multiple moves lead to same place...
             if len(found_moves) != 0:
                 self.state.do_move(found_moves[0])
+                self.stack_of_moves.append(found_moves[0])
             self.deselect()
+
+    def handle_undo_gameplay(self):
+        if len(self.stack_of_moves) != 0:
+            self.deselect()
+            move = self.stack_of_moves.pop()
+            self.state.undo_move(move)
 
     def run(self):
         while self.running:
@@ -80,6 +89,8 @@ class Application(object):
                     if event.button == 1:
                         self.handle_user_gameplay(event)
                     # TODO: Add undo mechanism
+                    if event.button == 3:
+                        self.handle_undo_gameplay()
 
             self.draw_frame()
             pygame.display.flip()
