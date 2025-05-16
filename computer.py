@@ -20,6 +20,101 @@ class Computer(object):
         self.cur_best_move = None
         self.max_player = None
 
+    def evaluate_piece(self, state, piece, row, col, stats, is_light=True):
+        if piece.is_base():
+            stats[0] += 1
+        else:
+            stats[1] += 1
+
+        if (is_light and row == ROWS - 1) or (not is_light and row == 0):
+            stats[2] += 1
+            # Back pieces are protected:
+            stats[6] += 1
+            return
+
+        self.evaluate_positioning(row, col, stats)
+        self.evaluate_if_can_be_taken(state, piece, row, col, stats, is_light)
+        self.evaluate_protection(state, piece, row, col, stats, is_light)
+        self.evaluate_attack(state, piece, row, col, stats, is_light)
+
+    def evaluate_positioning(self, row, col, stats):
+        # Check if the piece is in the middle:
+        if row == 3 or row == 4:
+            # Check for mini box (2x4) in the middle:
+            if 2 <= col <= 5:
+                stats[3] += 1
+            else:
+                stats[4] += 1
+
+    def evaluate_if_can_be_taken(self, state, piece, row, col, stats, is_light):
+        # Get all nearby pieces and check for direct eating rules,
+        # here won't be calculated jumping eating moves:
+        if is_light and row > 0 and 0 < col < 7:
+            ul = state[(row - 1) * COLS + (col - 1)]
+            ur = state[(row - 1) * COLS + (col + 1)]
+            dl = state[(row + 1) * COLS + (col - 1)]
+            dr = state[(row + 1) * COLS + (col + 1)]
+
+            if (
+                (ul.enemy(piece) and dr.empty())
+                or (ur.enemy(piece) and dl.empty())
+                or (dl.enemy(piece) and dl.is_queen() and ur.empty())
+                or (dr.enemy(piece) and dr.is_queen() and ul.empty())
+            ):
+                stats[5] += 1.5 if piece.is_queen() else 1
+
+        elif not is_light and row < ROWS - 1 and 0 < col < 7:
+            ul = state[(row - 1) * COLS + (col - 1)]
+            ur = state[(row - 1) * COLS + (col + 1)]
+            dl = state[(row + 1) * COLS + (col - 1)]
+            dr = state[(row + 1) * COLS + (col + 1)]
+            if (
+                (dl.enemy(piece) and ur.empty())
+                or (dr.enemy(piece) and ul.empty())
+                or (ul.enemy(piece) and ul.is_queen() and dr.empty())
+                or (ur.enemy(piece) and ur.is_queen() and dl.empty())
+            ):
+                stats[5] += 1.5 if piece.is_queen() else 1
+
+    def evaluate_protection(self, state, piece, row, col, stats, is_light):
+        behind_l = None
+        behind_r = None
+        if is_light and row < ROWS - 1:
+            if col > 0:
+                behind_l = state[(row + 1) * COLS + (col - 1)]
+            if col < COLS - 1:
+                behind_r = state[(row + 1) * COLS + (col + 1)]
+        elif not is_light and row > 0:
+            if col > 0:
+                behind_l = state[(row - 1) * COLS + (col - 1)]
+            if col < COLS - 1:
+                behind_r = state[(row - 1) * COLS + (col + 1)]
+
+        if behind_l and behind_r:
+            if (
+                behind_l.friend(piece) or (behind_l.enemy(piece) and behind_l.is_base())
+            ) and (
+                behind_r.friend(piece) or (behind_r.enemy(piece) and behind_r.is_base())
+            ):
+                stats[6] += 2 if piece.is_queen() else 1
+
+    def evaluate_attack(self, state, piece, row, col, stats, is_light):
+        if piece.is_queen():
+            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        else:
+            directions = [(-1, -1), (-1, 1)] if is_light else [(1, -1), (1, 1)]
+
+        for dr, dc in directions:
+            rm, cm = row + dr, col + dc
+            re, ce = row + 2 * dr, col + 2 * dc
+
+            if 0 <= rm < ROWS and 0 <= cm < COLS and 0 <= re < ROWS and 0 <= ce < COLS:
+                mid = state[rm * COLS + cm]
+                end = state[re * COLS + ce]
+
+                if mid.enemy(piece) and end.empty():
+                    stats[7] += 1.5 if mid.is_queen() else 1
+
     def heuristic(self, state):
         # Index 0: number of base pieces
         # Index 1: number of queens
@@ -42,144 +137,9 @@ class Computer(object):
             col = tile % COLS
 
             if piece.is_light():
-                if piece.is_base():
-                    light_stats[0] += 1
-                else:
-                    light_stats[1] += 1
-
-                if row == ROWS - 1:
-                    light_stats[2] += 1
-                    light_stats[6] += 1
-
-                if row == 3 or row == 4:
-                    if col >= 2 and col <= 5:
-                        light_stats[3] += 1
-                    else:
-                        light_stats[4] += 1
-
-                # Check if piece can be taken this turn:
-                if row > 0 and col > 0 and col < 7:
-                    ul_piece = state[(row - 1) * COLS + (col - 1)]
-                    ur_piece = state[(row - 1) * COLS + (col + 1)]
-                    dl_piece = state[(row + 1) * COLS + (col - 1)]
-                    dr_piece = state[(row + 1) * COLS + (col + 1)]
-                    if (ul_piece.enemy(piece) and dr_piece.empty()) or (
-                        ur_piece.enemy(piece) and dl_piece.empty()
-                    ):
-                        light_stats[5] += 1
-
-                # Check for protected pieces:
-                if row < ROWS - 1:
-                    if col == 0 or col == 7:
-                        light_stats[6] += 1
-                    else:
-                        # Behind us in both left and right must be our piece
-                        # or enemy base piece; queen would still capture us from behind:
-                        dl_piece = state[(row + 1) * COLS + (col - 1)]
-                        dr_piece = state[(row + 1) * COLS + (col + 1)]
-                        if (
-                            dl_piece.friend(piece)
-                            or (dl_piece.enemy(piece) and dl_piece.is_base())
-                        ) and (
-                            dr_piece.friend(piece)
-                            or (dr_piece.enemy(piece) and dr_piece.is_base())
-                        ):
-                            # Protected queen is more valuable than base piece:
-                            if piece.is_queen():
-                                light_stats[6] += 2
-                            else:
-                                light_stats[6] += 1
-
-                # Check if I can take enemy piece:
-                if piece.is_queen():
-                    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-                else:
-                    directions = [(-1, -1), (-1, 1)]
-
-                for dr, dc in directions:
-                    mid_row = row + dr
-                    mid_col = col + dc
-                    end_row = row + 2 * dr
-                    end_col = col + 2 * dc
-                    if (
-                        0 <= mid_row < ROWS and 0 <= mid_col < COLS and
-                        0 <= end_row < ROWS and 0 <= end_col < COLS
-                    ):
-                        mid_piece = state[mid_row * COLS + mid_col]
-                        end_piece = state[end_row * COLS + end_col]
-                        if mid_piece.enemy(piece) and end_piece.empty():
-                            # Capturing queen is more valuable:
-                            if mid_piece.is_queen():
-                                light_stats[7] += 1.5
-                            else:
-                                light_stats[7] += 1
+                self.evaluate_piece(state, piece, row, col, light_stats, is_light=True)
             else:
-                if piece.is_base():
-                    dark_stats[0] += 1
-                else:
-                    dark_stats[1] += 1
-
-                if row == 0:
-                    dark_stats[2] += 1
-                    dark_stats[6] += 1
-
-                if row == 3 or row == 4:
-                    if col >= 2 and col <= 5:
-                        dark_stats[3] += 1
-                    else:
-                        dark_stats[4] += 1
-
-                # Check if piece can be taken this turn:
-                if row < ROWS - 1 and col > 0 and col < 7:
-                    ul_piece = state[(row - 1) * COLS + (col - 1)]
-                    ur_piece = state[(row - 1) * COLS + (col + 1)]
-                    dl_piece = state[(row + 1) * COLS + (col - 1)]
-                    dr_piece = state[(row + 1) * COLS + (col + 1)]
-                    if (dl_piece.enemy(piece) and ur_piece.empty()) or (
-                        dr_piece.enemy(piece) and ul_piece.empty()
-                    ):
-                        dark_stats[5] += 1
-
-                # Check for protected pieces:
-                if row > 0:
-                    if col == 0 or col == 7:
-                        dark_stats[6] += 1
-                    else:
-                        ul_piece = state[(row - 1) * COLS + (col - 1)]
-                        ur_piece = state[(row - 1) * COLS + (col + 1)]
-                        if (
-                            ul_piece.friend(piece)
-                            or (ul_piece.enemy(piece) and ul_piece.is_base())
-                        ) and (
-                            ur_piece.friend(piece)
-                            or (ur_piece.enemy(piece) and ur_piece.is_base())
-                        ):
-                            if piece.is_queen():
-                                dark_stats[6] += 2
-                            else:
-                                dark_stats[6] += 1
-                
-                if piece.is_queen():
-                    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-                else:
-                    directions = [(1, -1), (1, 1)]
-
-                for dr, dc in directions:
-                    mid_row = row + dr
-                    mid_col = col + dc
-                    end_row = row + 2 * dr
-                    end_col = col + 2 * dc
-                    if (
-                        0 <= mid_row < ROWS and 0 <= mid_col < COLS and
-                        0 <= end_row < ROWS and 0 <= end_col < COLS
-                    ):
-                        mid_piece = state[mid_row * COLS + mid_col]
-                        end_piece = state[end_row * COLS + end_col]
-                        if mid_piece.enemy(piece) and end_piece.empty():
-                            if mid_piece.is_queen():
-                                dark_stats[7] += 1.5
-                            else:
-                                dark_stats[7] += 1
+                self.evaluate_piece(state, piece, row, col, dark_stats, is_light=False)
 
         weights = [5, 7.5, 4, 2.5, 0.5, -3, 2, 2.5]
         score = 0
