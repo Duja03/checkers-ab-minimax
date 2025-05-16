@@ -1,4 +1,5 @@
 import math
+from copy import deepcopy
 from enum import Enum
 
 from settings import COLS, ROWS
@@ -12,13 +13,65 @@ class StateResult(Enum):
 
 
 class Computer(object):
-    def __init__(self, time_limit, max_depth):
-        self.time_limit = time_limit
+    def __init__(self, time_limit_sec, max_depth):
+        self.time_limit_sec = time_limit_sec
         self.max_depth = max_depth
         self.cur_max_depth = 1
         self.best_move = None
         self.cur_best_move = None
         self.max_player = None
+
+    def state_is_terminal(self, state):
+        return self.state_result(state) != StateResult.PLAYING
+
+    def get_next_best_move(self, state, max):
+        doing_state = deepcopy(state)
+        self.minimax(doing_state, 0, max)
+        return self.cur_best_move
+
+    # Expect deep copy of a state as initial parameter state:
+    def minimax(self, state, depth, max):
+        if self.state_is_terminal(state) or depth >= self.max_depth:
+            return self.eval_state(state)
+        if max:
+            v = -math.inf
+            for move in state.get_all_turn_moves():
+                state.do_move(move)
+                new_v = self.minimax(state, depth + 1, False)
+                state.undo_move(move)
+                if new_v > v:
+                    v = new_v
+                    if depth == 0:
+                        self.cur_best_move = move
+        else:
+            v = math.inf
+            for move in state.get_all_turn_moves():
+                state.do_move(move)
+                new_v = self.minimax(state, depth + 1, True)
+                if new_v < v:
+                    v = new_v
+                    if depth == 0:
+                        self.cur_best_move = move
+        return v
+
+    def state_result(self, state):
+        if state.total_lights == 0:
+            return StateResult.DARK_WON
+        if state.total_darks == 0:
+            return StateResult.LIGHT_WON
+        if len(state.get_all_turn_moves()) == 0:
+            return StateResult.DRAW
+        return StateResult.PLAYING
+
+    def eval_state(self, state):
+        result = self.state_result(state)
+        if result == StateResult.LIGHT_WON:
+            return math.inf
+        elif result == StateResult.DARK_WON:
+            return -math.inf
+        elif result == StateResult.DRAW:
+            return 0
+        return self.heuristic(state)
 
     def evaluate_piece(self, state, piece, row, col, stats, is_light=True):
         if piece.is_base():

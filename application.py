@@ -3,6 +3,7 @@ from enum import Enum
 import pygame
 
 from computer import Computer
+from piece import Color
 from renderer import Renderer
 from settings import *
 from state import State
@@ -22,7 +23,7 @@ class Application(object):
         self.renderer = Renderer(self.window)
         self.state = State()
         self.game_state = GameState.PLAYING
-        self.ai = Computer(5, 5)
+        self.ai = Computer(5, 3)
 
         self.selected_tile = None
         self.available_moves = set()
@@ -63,7 +64,6 @@ class Application(object):
             self.state.generate_moves_for_tile(selected, self.available_moves)
             if len(self.available_moves) == 0:
                 self.deselect()
-            print("Heuristic for current state:", self.ai.heuristic(self.state))
         else:
             selected = self.get_selected_tile(event.pos)
             # Try finding the selected move:
@@ -82,6 +82,13 @@ class Application(object):
 
     def run(self):
         while self.running:
+
+            if self.state.turn_color == Color.DARK:
+                move = self.ai.get_next_best_move(self.state, False)
+                if move:
+                    self.state.do_move(move)
+                    self.stack_of_moves.append(move)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:  # Handle window close event
                     self.running = False

@@ -5,13 +5,13 @@ from settings import *
 
 class State(object):
     def __init__(self):
-        self.tiles = self.test_state()
-        self.turn_color = Color.LIGHT
-
         self.total_lights = 0
         self.light_queens = 0
         self.total_darks = 0
         self.dark_queens = 0
+
+        self.tiles = self.initial_state()
+        self.turn_color = Color.LIGHT
 
     def initial_state(self):
         matrix = [Piece(Type.EMPTY) for _ in range(COLS * ROWS)]
@@ -227,10 +227,6 @@ class State(object):
                 )
 
     def do_move(self, move: Move):
-        assert (
-            self.tiles[move.start_tile].color == self.turn_color
-        ), "Move color is not same as turn color!"
-
         start = move.start_tile
         dest = move.dest_tile
 
@@ -263,9 +259,6 @@ class State(object):
 
     def undo_move(self, move: Move):
         undo = move.inverse()
-        assert (
-            self.tiles[undo.start_tile].color != self.turn_color
-        ), "Move color is the same as turn color!"
 
         start = undo.start_tile
         dest = undo.dest_tile
