@@ -2,6 +2,7 @@ from enum import Enum
 
 import pygame
 
+from computer import Computer
 from renderer import Renderer
 from settings import *
 from state import State
@@ -21,6 +22,7 @@ class Application(object):
         self.renderer = Renderer(self.window)
         self.state = State()
         self.game_state = GameState.PLAYING
+        self.ai = Computer(5, 5)
 
         self.selected_tile = None
         self.available_moves = set()
@@ -59,6 +61,7 @@ class Application(object):
             self.state.generate_moves_for_tile(selected, self.available_moves)
             if len(self.available_moves) == 0:
                 self.deselect()
+            print("Heuristic for current state:", self.ai.heuristic(self.state))
         else:
             selected = self.get_selected_tile(event.pos)
             # Try finding the selected move:

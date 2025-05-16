@@ -58,6 +58,12 @@ class Piece(object):
     def same_color_as(self, other_color: Color):
         return self.color == other_color
 
+    def friend(self, piece):
+        return not piece.empty() and self.same_color_as(piece.color)
+
+    def enemy(self, piece):
+        return not piece.empty() and self.is_opposite_color(piece.color)
+
     def promote(self):
         if self.is_queen():
             return
