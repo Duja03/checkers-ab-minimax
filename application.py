@@ -1,8 +1,15 @@
+from enum import Enum
+
 import pygame
 
 from renderer import Renderer
 from settings import *
 from state import State
+
+
+class GameState(Enum):
+    MAIN_MENU = 1
+    PLAYING = 2
 
 
 class Application(object):
@@ -13,15 +20,19 @@ class Application(object):
         self.running = True
         self.renderer = Renderer(self.window)
         self.state = State()
+        self.game_state = GameState.PLAYING
 
         self.selected_tile = None
         self.available_moves = set()
 
     def draw_frame(self):
-        self.renderer.draw_tiles()
-        self.renderer.draw_selected(self.selected_tile)
-        self.renderer.draw_pieces(self.state)
-        self.renderer.draw_available_moves(self.state, self.available_moves)
+        if self.game_state == GameState.MAIN_MENU:
+            pass
+        else:
+            self.renderer.draw_tiles()
+            self.renderer.draw_selected(self.selected_tile)
+            self.renderer.draw_pieces(self.state)
+            self.renderer.draw_available_moves(self.state, self.available_moves)
 
     def get_selected_tile(self, mouse_pos):
         x, y = mouse_pos

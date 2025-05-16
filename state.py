@@ -8,6 +8,11 @@ class State(object):
         self.tiles = self.test_state()
         self.turn_color = Color.LIGHT
 
+        self.total_lights = 0
+        self.light_queens = 0
+        self.total_darks = 0
+        self.dark_queens = 0
+
     def initial_state(self):
         matrix = [Piece(Type.EMPTY) for _ in range(COLS * ROWS)]
         for r in range(ROWS):
@@ -15,10 +20,12 @@ class State(object):
                 if 0 <= r <= 2 and (r + c) % 2 == 1:
                     matrix[r * COLS + c].type = Type.BASE
                     matrix[r * COLS + c].color = Color.DARK
+                    self.total_darks += 1
                     continue
                 if 5 <= r <= 7 and (r + c) % 2 == 1:
                     matrix[r * COLS + c].type = Type.BASE
                     matrix[r * COLS + c].color = Color.LIGHT
+                    self.total_lights += 1
                     continue
         return matrix
 
@@ -46,6 +53,12 @@ class State(object):
 
         matrix[46].type = Type.BASE
         matrix[46].color = Color.DARK
+
+        self.total_lights = 1
+        self.light_queens = 1
+        self.total_darks = 7
+        self.dark_queens = 0
+
         return matrix
 
     def __str__(self):
@@ -126,8 +139,6 @@ class State(object):
                     self.generate_jumping_moves(
                         org_tile, l_tile, vec, all_moves, eaten, path
                     )
-        for move in all_moves:
-            print(move)
 
     def get_direction_vectors(self, piece: Piece, dir=(0, 0)):
         # Default (0, 0) means we are not in recursive part:
@@ -217,5 +228,13 @@ class State(object):
 
         for info in move.eaten_tiles:
             self.tiles[info.tile_index].set_empty()
+            if info.piece_color == Color.LIGHT:
+                if info.piece_type == Type.QUEEN:
+                    self.light_queens -= 1
+                self.total_lights -= 1
+            else:
+                if info.piece_type == Type.QUEEN:
+                    self.dark_queens -= 1
+                self.total_darks -= 1
 
         self.change_turn_color()
