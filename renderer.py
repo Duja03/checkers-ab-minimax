@@ -35,7 +35,7 @@ class Renderer(object):
         # that lead to that destination:
         dests = set()
         for move in moves:
-            dests.add(move.dest_tile)
+            dests.add(move.dest)
 
         # Select starting tile, so we can extract info:
         for tile in dests:
@@ -44,7 +44,7 @@ class Renderer(object):
             x = col * TILE_SIZE
             y = row * TILE_SIZE
             surf = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-            self.draw_piece(state[move.start_tile], surf, row, col, True)
+            self.draw_piece(state[move.start], surf, row, col, True)
             self.window.blit(surf, (x, y))
 
     def draw_pieces(self, state):

@@ -23,10 +23,10 @@ class Application(object):
         self.renderer = Renderer(self.window)
         self.state = State()
         self.game_state = GameState.PLAYING
-        self.ai = Computer(5, 3)
+        self.ai = Computer(5, 5)
 
         self.selected_tile = None
-        self.available_moves = set()
+        self.available_moves = []
 
         self.stack_of_moves = []
 
@@ -52,7 +52,7 @@ class Application(object):
     def filter_available_moves(self, selected):
         return list(
             filter(
-                lambda move: move.dest_tile == selected,
+                lambda move: move.dest == selected,
                 self.available_moves,
             )
         )
@@ -65,13 +65,13 @@ class Application(object):
             if len(self.available_moves) == 0:
                 self.deselect()
         else:
-            selected = self.get_selected_tile(event.pos)
+            #selected = self.get_selected_tile(event.pos)
             # Try finding the selected move:
-            found_moves = self.filter_available_moves(selected)
+            #found_moves = self.filter_available_moves(selected)
             # TODO: Give a choice when multiple moves lead to same place...
-            if len(found_moves) != 0:
-                self.state.do_move(found_moves[0])
-                self.stack_of_moves.append(found_moves[0])
+            #if len(found_moves) != 0:
+                #self.state.do_move(found_moves[0])
+                #self.stack_of_moves.append(found_moves[0])
             self.deselect()
 
     def handle_undo_gameplay(self):
@@ -83,11 +83,11 @@ class Application(object):
     def run(self):
         while self.running:
 
-            if self.state.turn_color == Color.DARK:
+            """if self.state.turn_color == Color.DARK:
                 move = self.ai.get_next_best_move(self.state, False)
                 if move:
                     self.state.do_move(move)
-                    self.stack_of_moves.append(move)
+                    self.stack_of_moves.append(move)"""
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:  # Handle window close event

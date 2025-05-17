@@ -10,7 +10,7 @@ class State(object):
         self.total_darks = 0
         self.dark_queens = 0
 
-        self.tiles = self.initial_state()
+        self.tiles = self.test_state()
         self.turn_color = Color.LIGHT
 
     def initial_state(self):
@@ -88,7 +88,7 @@ class State(object):
             self.turn_color = Color.DARK
 
     def get_all_turn_moves(self):
-        all_moves = set()
+        all_moves = []
         for tile in range(COLS * ROWS):
             piece = self.tiles[tile]
             if piece.empty() or piece.color != self.turn_color:
@@ -96,19 +96,22 @@ class State(object):
             self.generate_moves_for_tile(tile, all_moves)
         return all_moves
 
-    def generate_moves_for_tile(self, org_tile, all_moves: set):
+    def generate_moves_for_tile(self, org_tile, all_moves):
         o_piece = self.tiles[org_tile]
         if o_piece.empty() or o_piece.color != self.turn_color:
             return
+
         o_row = org_tile // ROWS
         o_col = org_tile % COLS
-        o_color = o_piece.color
 
-        srt_vecs = self.get_direction_vectors(o_piece)
         path = set([org_tile])
 
-        for vec in srt_vecs:
+        forward = -1 if o_piece.color == Color.LIGHT else 1
+        for vec in [(forward, 1), (forward, -1), (-forward, 1), (-forward, -1)]:
             dr, dc = vec
+            if o_piece.is_base() and dr == -forward:
+                continue
+
             # Calculate short diagonal coords (forward left, ...):
             s_row, s_col = o_row + dr, o_col + dc
             # Validate so that they are inside the board:
@@ -120,17 +123,15 @@ class State(object):
 
             # Free space => valid move:
             if s_piece.empty():
-                move = Move(org_tile, s_tile)
                 # Check for potential queen promotion:
-                if o_piece.is_base() and (
+                promoted = o_piece.is_base() and (
                     (o_piece.color == Color.DARK and s_row == ROWS - 1)
                     or (o_piece.color == Color.LIGHT and s_row == 0)
-                ):
-                    move.set_as_promoted()
+                )
 
-                all_moves.add(move)
+                all_moves.append(Move(org_tile, s_tile, None, promoted))
             # We can't jump over our pieces:
-            elif s_piece.is_opposite_color(o_color):
+            elif s_piece.is_opposite_color(o_piece.color):
                 # Checking for tile in same direction that is
                 # behind the opponent piece:
                 l_row, l_col = s_row + dr, s_col + dc
@@ -142,42 +143,22 @@ class State(object):
 
                 # Free behind enemy => valid eating move:
                 if l_piece.empty():
-                    eaten = set([EatenInfo(s_tile, s_piece.type, s_piece.color)])
-                    move = Move(org_tile, l_tile, eaten)
+                    eaten = [EatenInfo(s_tile, s_piece.type, s_piece.color)]
                     # Check for potential queen promotion:
-                    if o_piece.is_base() and (
+                    promoted = o_piece.is_base() and (
                         (o_piece.color == Color.DARK and l_row == ROWS - 1)
                         or (o_piece.color == Color.LIGHT and l_row == 0)
-                    ):
-                        move.set_as_promoted()
+                    )
 
-                    all_moves.add(move)
+                    all_moves.append(Move(org_tile, l_tile, tuple(eaten), promoted))
                     self.generate_jumping_moves(
                         org_tile, l_tile, vec, all_moves, eaten, path
                     )
-
-    def get_direction_vectors(self, piece: Piece, dir=(0, 0)):
-        # Default (0, 0) means we are not in recursive part:
-        vecs = []
-        dr, dc = dir
-        forward = -1 if piece.color == Color.LIGHT else 1
-        if not (-dr == forward and -dc == 1):
-            vecs.append((forward, 1))
-        if not (-dr == forward and -dc == -1):
-            vecs.append((forward, -1))
-
-        if piece.is_queen():
-            # This time we don't want to include direction that led us
-            # to current position, otherwise we will just go back and forth:
-            if not (-dr == -forward and -dc == 1):
-                vecs.append((-forward, 1))
-            if not (-dr == -forward and -dc == -1):
-                vecs.append((-forward, -1))
-
-        return vecs
+        for move in sorted(all_moves, key=lambda mov: mov.dest):
+            print(move)
 
     def generate_jumping_moves(
-        self, org_tile, current_tile, dir, all_moves: set, eaten: set, path: set
+        self, org_tile, current_tile, dir, all_moves, eaten, path: set
     ):
         path = set(path)
         if current_tile in path:
@@ -185,14 +166,17 @@ class State(object):
 
         path.add(current_tile)
         o_piece = self.tiles[org_tile]
-
         c_row = current_tile // ROWS
         c_col = current_tile % COLS
-        o_color = o_piece.color
-        srt_vecs = self.get_direction_vectors(o_piece, dir)
 
-        for vec in srt_vecs:
+        forward = -1 if o_piece.color == Color.LIGHT else 1
+        old_dr, old_dc = dir
+        for vec in [(forward, 1), (forward, -1), (-forward, 1), (-forward, -1)]:
             dr, dc = vec
+            if (dr == -old_dr and dc == -old_dc) or (
+                o_piece.is_base() and dr == -forward
+            ):
+                continue
 
             s_row, s_col = c_row + dr, c_col + dc
             if not (0 <= s_row < ROWS) or not (0 <= s_col < COLS):
@@ -200,7 +184,7 @@ class State(object):
 
             s_tile = s_row * COLS + s_col
             s_piece = self.tiles[s_tile]
-            if s_piece.empty() or s_piece.same_color_as(o_color):
+            if s_piece.empty() or s_piece.same_color_as(o_piece.color):
                 continue
 
             l_row, l_col = s_row + dr, s_col + dc
@@ -210,25 +194,22 @@ class State(object):
             l_tile = l_row * COLS + l_col
             l_piece = self.tiles[l_tile]
             if l_piece.empty():
-                new_eaten = set(eaten)
-                new_eaten.add(EatenInfo(s_tile, s_piece.type, s_piece.color))
-
-                move = Move(org_tile, l_tile, new_eaten)
+                new_eaten = list(eaten)
+                new_eaten.append(EatenInfo(s_tile, s_piece.type, s_piece.color))
                 # Check for potential queen promotion:
-                if o_piece.is_base() and (
+                promoted = o_piece.is_base() and (
                     (o_piece.color == Color.DARK and l_row == ROWS - 1)
                     or (o_piece.color == Color.LIGHT and l_row == 0)
-                ):
-                    move.set_as_promoted()
+                )
 
-                all_moves.add(move)
+                all_moves.append(Move(org_tile, l_tile, tuple(new_eaten), promoted))
                 self.generate_jumping_moves(
                     org_tile, l_tile, vec, all_moves, new_eaten, path
                 )
 
     def do_move(self, move: Move):
-        start = move.start_tile
-        dest = move.dest_tile
+        start = move.start
+        dest = move.dest
 
         start_piece = self.tiles[start]
         start_color, start_type = start_piece.color, start_piece.type
@@ -244,7 +225,7 @@ class State(object):
             self.tiles[dest].promote()
 
         # removing eaten pieces:
-        for info in move.eaten_tiles:
+        for info in move.eaten:
             self.tiles[info.tile_index].set_empty()
             if info.piece_color == Color.LIGHT:
                 if info.piece_type == Type.QUEEN:
@@ -277,7 +258,7 @@ class State(object):
             self.tiles[dest].demote()
 
         # Reviving eaten pieces:
-        for info in move.eaten_tiles:
+        for info in move.eatens:
             self.tiles[info.tile_index].color = info.piece_color
             self.tiles[info.tile_index].type = info.piece_type
 
