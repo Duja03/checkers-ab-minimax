@@ -47,7 +47,7 @@ class Application(object):
 
     def deselect(self):
         self.selected_tile = None
-        self.available_moves = set()
+        self.available_moves = []
 
     def filter_available_moves(self, selected):
         return list(
@@ -65,13 +65,13 @@ class Application(object):
             if len(self.available_moves) == 0:
                 self.deselect()
         else:
-            #selected = self.get_selected_tile(event.pos)
+            selected = self.get_selected_tile(event.pos)
             # Try finding the selected move:
-            #found_moves = self.filter_available_moves(selected)
+            found_moves = self.filter_available_moves(selected)
             # TODO: Give a choice when multiple moves lead to same place...
-            #if len(found_moves) != 0:
-                #self.state.do_move(found_moves[0])
-                #self.stack_of_moves.append(found_moves[0])
+            if len(found_moves) != 0:
+                self.state.do_move(found_moves[0])
+                self.stack_of_moves.append(found_moves[0])
             self.deselect()
 
     def handle_undo_gameplay(self):

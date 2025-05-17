@@ -154,8 +154,6 @@ class State(object):
                     self.generate_jumping_moves(
                         org_tile, l_tile, vec, all_moves, eaten, path
                     )
-        for move in sorted(all_moves, key=lambda mov: mov.dest):
-            print(move)
 
     def generate_jumping_moves(
         self, org_tile, current_tile, dir, all_moves, eaten, path: set
@@ -211,64 +209,61 @@ class State(object):
         start = move.start
         dest = move.dest
 
-        start_piece = self.tiles[start]
-        start_color, start_type = start_piece.color, start_piece.type
+        # Remember initial state:
+        s_piece = self.tiles[start]
+        s_color, s_type = s_piece.color, s_piece.type
 
         # Updating start and dest tiles:
-        self.tiles[start].color = self.tiles[dest].color
-        self.tiles[start].type = self.tiles[dest].type
-        self.tiles[dest].color = start_color
-        self.tiles[dest].type = start_type
+        self.tiles[start].type = Type.EMPTY
+        self.tiles[dest].color = s_color
+        self.tiles[dest].type = s_type
 
         # Promote if possible:
         if move.promoted:
             self.tiles[dest].promote()
 
-        # removing eaten pieces:
+        # Removing eaten pieces:
         for info in move.eaten:
-            self.tiles[info.tile_index].set_empty()
-            if info.piece_color == Color.LIGHT:
-                if info.piece_type == Type.QUEEN:
+            self.tiles[info.tile].eat()
+            if info.p_color == Color.LIGHT:
+                if info.p_type == Type.QUEEN:
                     self.light_queens -= 1
                 self.total_lights -= 1
             else:
-                if info.piece_type == Type.QUEEN:
+                if info.p_type == Type.QUEEN:
                     self.dark_queens -= 1
                 self.total_darks -= 1
 
         self.change_turn_color()
 
     def undo_move(self, move: Move):
-        undo = move.inverse()
-
-        start = undo.start_tile
-        dest = undo.dest_tile
-
-        start_piece = self.tiles[start]
-        start_color, start_type = start_piece.color, start_piece.type
-
-        # Updating start and dest tiles:
-        self.tiles[start].color = self.tiles[dest].color
-        self.tiles[start].type = self.tiles[dest].type
-        self.tiles[dest].color = start_color
-        self.tiles[dest].type = start_type
-
-        # Demote if possible:
-        if undo.promoted:
-            self.tiles[dest].demote()
+        start = move.dest
+        dest = move.start
 
         # Reviving eaten pieces:
-        for info in move.eatens:
-            self.tiles[info.tile_index].color = info.piece_color
-            self.tiles[info.tile_index].type = info.piece_type
+        for info in move.eaten:
+            self.tiles[info.tile].color = info.p_color
+            self.tiles[info.tile].type = info.p_type
 
-            if info.piece_color == Color.LIGHT:
-                if info.piece_type == Type.QUEEN:
+            if info.p_color == Color.LIGHT:
+                if info.p_type == Type.QUEEN:
                     self.light_queens += 1
                 self.total_lights += 1
             else:
-                if info.piece_type == Type.QUEEN:
+                if info.p_type == Type.QUEEN:
                     self.dark_queens += 1
                 self.total_darks += 1
+
+        # Demote if possible:
+        if move.promoted:
+            self.tiles[start].demote()
+
+        start_piece = self.tiles[start]
+        s_color, s_type = start_piece.color, start_piece.type
+
+        # Updating start and dest tiles:
+        self.tiles[start].type = Type.EMPTY
+        self.tiles[dest].color = s_color
+        self.tiles[dest].type = s_type
 
         self.change_turn_color()

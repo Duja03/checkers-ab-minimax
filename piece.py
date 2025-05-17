@@ -34,7 +34,7 @@ class Piece(object):
     def __repr__(self):
         return str(self)
 
-    def set_empty(self):
+    def eat(self):
         self.type = Type.EMPTY
 
     def empty(self):
