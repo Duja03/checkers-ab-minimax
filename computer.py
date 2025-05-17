@@ -102,11 +102,12 @@ class Computer(object):
     def evaluate_if_can_be_taken(self, state, piece, row, col, stats, is_light):
         # Get all nearby pieces and check for direct eating rules,
         # here won't be calculated jumping eating moves:
+
         if is_light and row > 0 and 0 < col < 7:
-            ul = state[(row - 1) * COLS + (col - 1)]
-            ur = state[(row - 1) * COLS + (col + 1)]
-            dl = state[(row + 1) * COLS + (col - 1)]
-            dr = state[(row + 1) * COLS + (col + 1)]
+            ul = state.at(row - 1, col - 1)
+            ur = state.at(row - 1, col + 1)
+            dl = state.at(row + 1, col - 1)
+            dr = state.at(row + 1, col + 1)
 
             if (
                 (ul.enemy(piece) and dr.empty())
@@ -117,10 +118,10 @@ class Computer(object):
                 stats[5] += 1.5 if piece.is_queen() else 1
 
         elif not is_light and row < ROWS - 1 and 0 < col < 7:
-            ul = state[(row - 1) * COLS + (col - 1)]
-            ur = state[(row - 1) * COLS + (col + 1)]
-            dl = state[(row + 1) * COLS + (col - 1)]
-            dr = state[(row + 1) * COLS + (col + 1)]
+            ul = state.at(row - 1, col - 1)
+            ur = state.at(row - 1, col + 1)
+            dl = state.at(row + 1, col - 1)
+            dr = state.at(row + 1, col + 1)
             if (
                 (dl.enemy(piece) and ur.empty())
                 or (dr.enemy(piece) and ul.empty())
@@ -130,24 +131,22 @@ class Computer(object):
                 stats[5] += 1.5 if piece.is_queen() else 1
 
     def evaluate_protection(self, state, piece, row, col, stats, is_light):
-        behind_l = None
-        behind_r = None
+        bl = None
+        br = None
         if is_light and row < ROWS - 1:
             if col > 0:
-                behind_l = state[(row + 1) * COLS + (col - 1)]
+                bl = state.at(row + 1, col - 1)
             if col < COLS - 1:
-                behind_r = state[(row + 1) * COLS + (col + 1)]
+                br = state.at(row + 1, col + 1)
         elif not is_light and row > 0:
             if col > 0:
-                behind_l = state[(row - 1) * COLS + (col - 1)]
+                bl = state.at(row - 1, col - 1)
             if col < COLS - 1:
-                behind_r = state[(row - 1) * COLS + (col + 1)]
+                br = state.at(row - 1, col + 1)
 
-        if behind_l and behind_r:
-            if (
-                behind_l.friend(piece) or (behind_l.enemy(piece) and behind_l.is_base())
-            ) and (
-                behind_r.friend(piece) or (behind_r.enemy(piece) and behind_r.is_base())
+        if bl and br:
+            if (bl.friend(piece) or (bl.enemy(piece) and bl.is_base())) and (
+                br.friend(piece) or (br.enemy(piece) and br.is_base())
             ):
                 stats[6] += 2 if piece.is_queen() else 1
 
@@ -162,27 +161,18 @@ class Computer(object):
             re, ce = row + 2 * dr, col + 2 * dc
 
             if 0 <= rm < ROWS and 0 <= cm < COLS and 0 <= re < ROWS and 0 <= ce < COLS:
-                mid = state[rm * COLS + cm]
-                end = state[re * COLS + ce]
+                mid = state.at(rm, cm)
+                end = state.at(re, ce)
 
                 if mid.enemy(piece) and end.empty():
                     stats[7] += 1.5 if mid.is_queen() else 1
 
     def heuristic(self, state):
-        # Index 0: number of base pieces
-        # Index 1: number of queens
-        # Index 2: number of pieces in back row
-        # Index 3: number of pieces in the middle (2x4) box
-        # Index 4: number of pieces in middle 2 rows, but not in the box
-        # Index 5: number of pieces that can be taken this turn
-        # Index 6: number of pieces that are protected
-        # Index 7: number of pieces that can be captured
-
         light_stats = [0] * 8
         dark_stats = [0] * 8
 
         for tile in range(COLS * ROWS):
-            piece = state[tile]
+            piece = state.atTile(tile)
             if piece.empty():
                 continue
 

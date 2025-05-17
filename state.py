@@ -10,7 +10,7 @@ class State(object):
         self.total_darks = 0
         self.dark_queens = 0
 
-        self.tiles = self.test_state()
+        self.tiles = self.initial_state()
         self.turn_color = Color.LIGHT
 
     def initial_state(self):
@@ -74,12 +74,11 @@ class State(object):
     def __repr__(self):
         return str(self)
 
-    def __getitem__(self, tile) -> Piece:
-        assert 0 <= tile < ROWS * COLS, "Tile is outside the board!"
+    def atTile(self, tile):
         return self.tiles[tile]
 
-    def __setitem__(self, tile, piece):
-        raise Exception("Nema setovanja na ovaj nacin, koristi .color i .type!")
+    def at(self, row, col):
+        return self.tiles[row * COLS + col]
 
     def change_turn_color(self):
         if self.turn_color == Color.DARK:
@@ -120,7 +119,6 @@ class State(object):
 
             s_tile = s_row * COLS + s_col
             s_piece = self.tiles[s_tile]
-
             # Free space => valid move:
             if s_piece.empty():
                 # Check for potential queen promotion:
@@ -128,7 +126,6 @@ class State(object):
                     (o_piece.color == Color.DARK and s_row == ROWS - 1)
                     or (o_piece.color == Color.LIGHT and s_row == 0)
                 )
-
                 all_moves.append(Move(org_tile, s_tile, None, promoted))
             # We can't jump over our pieces:
             elif s_piece.is_opposite_color(o_piece.color):

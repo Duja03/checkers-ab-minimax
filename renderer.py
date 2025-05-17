@@ -44,14 +44,14 @@ class Renderer(object):
             x = col * TILE_SIZE
             y = row * TILE_SIZE
             surf = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-            self.draw_piece(state[move.start], surf, row, col, True)
+            self.draw_piece(state.atTile(move.start), surf, row, col, True)
             self.window.blit(surf, (x, y))
 
     def draw_pieces(self, state):
         for tile in range(ROWS * COLS):
             row = tile // ROWS
             col = tile % COLS
-            piece = state[tile]
+            piece = state.atTile(tile)
             self.draw_piece(piece, self.window, row, col, False)
 
     def draw_piece(self, piece, surface, row, col, alpha):

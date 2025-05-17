@@ -23,7 +23,7 @@ class Application(object):
         self.renderer = Renderer(self.window)
         self.state = State()
         self.game_state = GameState.PLAYING
-        self.ai = Computer(5, 5)
+        self.ai = Computer(5, 1)
 
         self.selected_tile = None
         self.available_moves = []
@@ -83,11 +83,12 @@ class Application(object):
     def run(self):
         while self.running:
 
-            """if self.state.turn_color == Color.DARK:
+            if self.state.turn_color == Color.DARK:
                 move = self.ai.get_next_best_move(self.state, False)
                 if move:
                     self.state.do_move(move)
-                    self.stack_of_moves.append(move)"""
+                    self.stack_of_moves.append(move)
+                    continue
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:  # Handle window close event
