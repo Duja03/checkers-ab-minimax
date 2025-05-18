@@ -23,7 +23,7 @@ class Application(object):
         self.renderer = Renderer(self.window)
         self.state = State()
         self.game_state = GameState.PLAYING
-        self.ai = Computer(5, 1)
+        self.ai = Computer(5, 5)
 
         self.selected_tile = None
         self.available_moves = []

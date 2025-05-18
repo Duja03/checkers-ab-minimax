@@ -218,6 +218,10 @@ class State(object):
         # Promote if possible:
         if move.promoted:
             self.tiles[dest].promote()
+            if self.tiles[dest].color == Color.DARK:
+                self.dark_queens += 1
+            else:
+                self.light_queens += 1
 
         # Removing eaten pieces:
         for info in move.eaten:
@@ -254,6 +258,10 @@ class State(object):
         # Demote if possible:
         if move.promoted:
             self.tiles[start].demote()
+            if self.tiles[start].color == Color.DARK:
+                self.dark_queens -= 1
+            else:
+                self.light_queens -= 1
 
         start_piece = self.tiles[start]
         s_color, s_type = start_piece.color, start_piece.type

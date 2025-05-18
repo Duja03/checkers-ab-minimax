@@ -26,7 +26,9 @@ class Computer(object):
 
     def get_next_best_move(self, state, max):
         doing_state = deepcopy(state)
+        print("Thinking...")
         self.minimax(doing_state, 0, max)
+        print("Best move is", self.cur_best_move)
         return self.cur_best_move
 
     # Expect deep copy of a state as initial parameter state:
@@ -48,6 +50,7 @@ class Computer(object):
             for move in state.get_all_turn_moves():
                 state.do_move(move)
                 new_v = self.minimax(state, depth + 1, True)
+                state.undo_move(move)
                 if new_v < v:
                     v = new_v
                     if depth == 0:
