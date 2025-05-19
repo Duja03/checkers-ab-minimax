@@ -8,6 +8,11 @@ class Renderer(object):
     def __init__(self, window):
         self.window = window
 
+        self.background_image = pygame.transform.scale(
+            pygame.image.load("assets/main menu background.png"),
+            (SCREEN_WIDTH, SCREEN_HEIGHT),
+        )
+
         self.header_text = pygame.font.Font(
             "assets/Roboto-Black.ttf", HEADER_FONT_SIZE
         ).render("CHECKERS", True, HEADER_FONT_COLOR)
@@ -20,10 +25,19 @@ class Renderer(object):
             "assets/Roboto-Regular.ttf", BUTTON_FONT_SIZE
         ).render("Player vs. AI", True, BUTTON_FONT_COLOR)
 
-        self.main_menu_bg_image = pygame.transform.scale(
-            pygame.image.load("assets/main menu background.png"),
-            (SCREEN_WIDTH, SCREEN_HEIGHT),
-        )
+        self.play_again_text = pygame.font.Font(
+            "assets/Roboto-Regular.ttf", BUTTON_FONT_SIZE
+        ).render("Play again", True, BUTTON_FONT_COLOR)
+
+        self.go_draw_text = pygame.font.Font(
+            "assets/Roboto-Black.ttf", GAME_OVER_FONT_SIZE
+        ).render("Draw!", True, GAME_OVER_FONT_COLOR)
+        self.go_light_text = pygame.font.Font(
+            "assets/Roboto-Black.ttf", GAME_OVER_FONT_SIZE
+        ).render("Light won!", True, GAME_OVER_FONT_COLOR)
+        self.go_dark_text = pygame.font.Font(
+            "assets/Roboto-Black.ttf", GAME_OVER_FONT_SIZE
+        ).render("Dark won!", True, GAME_OVER_FONT_COLOR)
 
         # Helper rects for easy game mode selection in main menu:
         self.p_vs_p_rect = self.p_vs_p_text.get_rect(
@@ -32,12 +46,25 @@ class Renderer(object):
         self.p_vs_c_rect = self.p_vs_c_text.get_rect(
             topleft=(BUTTON_PVC_X, BUTTON_PVC_Y)
         )
+        self.play_again_rect = self.play_again_text.get_rect(topleft=(AGAIN_X, AGAIN_Y))
 
     def draw_main_menu(self):
-        self.window.blit(self.main_menu_bg_image, (0, 0))
+        self.window.blit(self.background_image, (0, 0))
         self.window.blit(self.header_text, (HEADER_X, HEADER_Y))
         self.window.blit(self.p_vs_p_text, (BUTTON_PVP_X, BUTTON_PVP_Y))
         self.window.blit(self.p_vs_c_text, (BUTTON_PVC_X, BUTTON_PVC_Y))
+
+    def draw_game_over(self, state_result):
+        assert state_result != StateResult.PLAYING
+        self.window.blit(self.background_image, (0, 0))
+        if state_result == StateResult.DRAW:
+            self.window.blit(self.go_draw_text, (230, 200))
+        elif state_result == StateResult.LIGHT_WON:
+            self.window.blit(self.go_light_text, (180, 200))
+        else:
+            self.window.blit(self.go_dark_text, (185, 200))
+
+        self.window.blit(self.play_again_text, (AGAIN_X, AGAIN_Y))
 
     def draw_tiles(self):
         for tile in range(ROWS * COLS):

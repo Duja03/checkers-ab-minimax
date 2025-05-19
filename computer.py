@@ -16,9 +16,6 @@ class Computer(object):
         self.max_player = None
         self.start_time_point = None
 
-    def state_is_terminal(self, state):
-        return self.state_result(state) != StateResult.PLAYING
-
     def iterative_deepening(self, state, use_ab):
         working_state = deepcopy(state)
         max = working_state.turn_color == Color.LIGHT
@@ -51,7 +48,7 @@ class Computer(object):
         if time.perf_counter() - self.start_time_point > self.time_limit_sec:
             raise TimeOutException()
 
-        if self.state_is_terminal(state) or depth >= self.cur_max_depth:
+        if state.is_terminal() or depth >= self.cur_max_depth:
             return self.eval_state(state)
 
         if max:
@@ -80,7 +77,7 @@ class Computer(object):
         if time.perf_counter() - self.start_time_point > self.time_limit_sec:
             raise TimeOutException()
 
-        if self.state_is_terminal(state) or depth >= self.cur_max_depth:
+        if state.is_terminal() or depth >= self.cur_max_depth:
             return self.eval_state(state)
 
         if max:
@@ -113,17 +110,8 @@ class Computer(object):
                     beta = new_v
         return v
 
-    def state_result(self, state):
-        if state.total_lights == 0:
-            return StateResult.DARK_WON
-        if state.total_darks == 0:
-            return StateResult.LIGHT_WON
-        if len(state.get_all_turn_moves()) == 0:
-            return StateResult.DRAW
-        return StateResult.PLAYING
-
     def eval_state(self, state):
-        result = self.state_result(state)
+        result = state.state_result()
         if result == StateResult.LIGHT_WON:
             return math.inf
         elif result == StateResult.DARK_WON:

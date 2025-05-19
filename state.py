@@ -29,37 +29,17 @@ class State(object):
                     continue
         return matrix
 
-    def test_state(self):
-        matrix = [Piece(Type.EMPTY) for _ in range(COLS * ROWS)]
-        matrix[1].type = Type.QUEEN
+    def state_result(self):
+        if self.total_lights == 0:
+            return StateResult.DARK_WON
+        if self.total_darks == 0:
+            return StateResult.LIGHT_WON
+        if len(self.get_all_turn_moves()) == 0:
+            return StateResult.DRAW
+        return StateResult.PLAYING
 
-        matrix[10].type = Type.BASE
-        matrix[10].color = Color.DARK
-
-        matrix[12].type = Type.BASE
-        matrix[12].color = Color.DARK
-
-        matrix[14].type = Type.BASE
-        matrix[14].color = Color.DARK
-
-        matrix[28].type = Type.BASE
-        matrix[28].color = Color.DARK
-
-        matrix[30].type = Type.BASE
-        matrix[30].color = Color.DARK
-
-        matrix[44].type = Type.BASE
-        matrix[44].color = Color.DARK
-
-        matrix[46].type = Type.BASE
-        matrix[46].color = Color.DARK
-
-        self.total_lights = 1
-        self.light_queens = 1
-        self.total_darks = 7
-        self.dark_queens = 0
-
-        return matrix
+    def is_terminal(self):
+        return self.state_result() != StateResult.PLAYING
 
     def __str__(self):
         output = []

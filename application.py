@@ -27,6 +27,11 @@ class Application(object):
         self.available_moves = []
         self.stack_of_moves = []
 
+    def reset(self):
+        self.state = State()
+        self.stack_of_moves = []
+        self.deselect()
+
     def deselect(self):
         self.selected_tile = None
         self.available_moves = []
@@ -39,6 +44,16 @@ class Application(object):
             )
         )
 
+    def gameplay_game_over(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                break
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if self.renderer.play_again_rect.collidepoint(event.pos):
+                        self.game_state = GameState.MAIN_MENU
+
     def gameplay_main_menu(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -49,9 +64,11 @@ class Application(object):
                     if self.renderer.p_vs_p_rect.collidepoint(event.pos):
                         self.game_mode = GameMode.PLAYER_VS_PLAYER
                         self.game_state = GameState.PLAYING
+                        self.reset()
                     elif self.renderer.p_vs_c_rect.collidepoint(event.pos):
                         self.game_mode = GameMode.PLAYER_VS_COMPUTER
                         self.game_state = GameState.PLAYING
+                        self.reset()
 
     def gameplay_player_vs_player(self):
         for event in pygame.event.get():
@@ -71,10 +88,11 @@ class Application(object):
 
             if move:
                 self.state.do_move(move)
-
-                # TODO: Update game state when game is over...
-
                 self.stack_of_moves.append(move)
+
+                if self.state.is_terminal():
+                    self.game_state = GameState.GAME_OVER
+                    return
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -117,10 +135,10 @@ class Application(object):
             # If such move exists we use it:
             if len(found_moves) != 0:
                 self.state.do_move(found_moves[0])
-
-                # TODO: Update game state when game is over...
-
                 self.stack_of_moves.append(found_moves[0])
+
+                if self.state.is_terminal():
+                    self.game_state = GameState.GAME_OVER
 
             self.deselect()
 
@@ -138,6 +156,7 @@ class Application(object):
             if self.game_state == GameState.MAIN_MENU:
                 self.gameplay_main_menu()
                 self.renderer.draw_main_menu()
+
             elif self.game_state == GameState.PLAYING:
                 if self.game_mode == GameMode.PLAYER_VS_PLAYER:
                     self.gameplay_player_vs_player()
@@ -149,8 +168,11 @@ class Application(object):
                 self.renderer.draw_selected(self.selected_tile)
                 self.renderer.draw_pieces(self.state)
                 self.renderer.draw_available_moves(self.state, self.available_moves)
+
             else:
-                pass
+                self.gameplay_game_over()
+                game_result = self.state.state_result()
+                self.renderer.draw_game_over(game_result)
 
             pygame.display.flip()
 
