@@ -44,6 +44,14 @@ class Application(object):
             if event.type == pygame.QUIT:
                 self.running = False
                 break
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if self.renderer.p_vs_p_rect.collidepoint(event.pos):
+                        self.game_mode = GameMode.PLAYER_VS_PLAYER
+                        self.game_state = GameState.PLAYING
+                    elif self.renderer.p_vs_c_rect.collidepoint(event.pos):
+                        self.game_mode = GameMode.PLAYER_VS_COMPUTER
+                        self.game_state = GameState.PLAYING
 
     def gameplay_player_vs_player(self):
         for event in pygame.event.get():

@@ -25,6 +25,14 @@ class Renderer(object):
             (SCREEN_WIDTH, SCREEN_HEIGHT),
         )
 
+        # Helper rects for easy game mode selection in main menu:
+        self.p_vs_p_rect = self.p_vs_p_text.get_rect(
+            topleft=(BUTTON_PVP_X, BUTTON_PVP_Y)
+        )
+        self.p_vs_c_rect = self.p_vs_c_text.get_rect(
+            topleft=(BUTTON_PVC_X, BUTTON_PVC_Y)
+        )
+
     def draw_main_menu(self):
         self.window.blit(self.main_menu_bg_image, (0, 0))
         self.window.blit(self.header_text, (HEADER_X, HEADER_Y))
