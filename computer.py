@@ -25,10 +25,16 @@ class Computer(object):
         return self.state_result(state) != StateResult.PLAYING
 
     def get_next_best_move(self, state, max):
-        doing_state = deepcopy(state)
+        minimax_state = deepcopy(state)
+        alphabeta_state = deepcopy(state)
         print("Thinking...")
-        self.minimax(doing_state, 0, max)
-        print("Best move is", self.cur_best_move)
+        self.minimax(minimax_state, 0, max)
+        print(f"Best move is {self.cur_best_move}")
+
+        print("Thinking with alpha-beta...")
+        self.alphabeta(alphabeta_state, -math.inf, math.inf, 0, max)
+        print(f"Best move (ab) is {self.cur_best_move}\n")
+        
         return self.cur_best_move
 
     # Expect deep copy of a state as initial parameter state:
@@ -55,6 +61,39 @@ class Computer(object):
                     v = new_v
                     if depth == 0:
                         self.cur_best_move = move
+        return v
+
+    def alphabeta(self, state, alpha, beta, depth, max):
+        if self.state_is_terminal(state) or depth >= self.max_depth:
+            return self.eval_state(state)
+        if max:
+            v = -math.inf
+            for move in state.get_all_turn_moves():
+                state.do_move(move)
+                new_v = self.alphabeta(state, alpha, beta, depth + 1, False)
+                state.undo_move(move)
+                if new_v > v:
+                    v = new_v
+                    if depth == 0:
+                        self.cur_best_move = move
+                if new_v >= beta:
+                    return v
+                if new_v > alpha:
+                    alpha = new_v
+        else:
+            v = math.inf
+            for move in state.get_all_turn_moves():
+                state.do_move(move)
+                new_v = self.alphabeta(state, alpha, beta, depth + 1, True)
+                state.undo_move(move)
+                if new_v < v:
+                    v = new_v
+                    if depth == 0:
+                        self.cur_best_move = move
+                if new_v <= alpha:
+                    return v
+                if new_v < beta:
+                    beta = new_v
         return v
 
     def state_result(self, state):
