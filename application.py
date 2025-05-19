@@ -5,45 +5,27 @@ import pygame
 from computer import Computer
 from piece import Color
 from renderer import Renderer
-from settings import *
 from state import State
-
-
-class GameState(Enum):
-    MAIN_MENU = 1
-    PLAYING = 2
+from utility import *
 
 
 class Application(object):
     def __init__(self):
         pygame.init()
-        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Checkers!")
-        self.running = True
+
+        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.renderer = Renderer(self.window)
+        self.ai = Computer(1, 10)
         self.state = State()
+
+        self.running = True
         self.game_state = GameState.PLAYING
-        self.ai = Computer(3, 10)
+        self.game_mode = GameMode.PLAYER_VS_COMPUTER
 
         self.selected_tile = None
         self.available_moves = []
-
         self.stack_of_moves = []
-
-    def draw_frame(self):
-        if self.game_state == GameState.MAIN_MENU:
-            pass
-        else:
-            self.renderer.draw_tiles()
-            self.renderer.draw_selected(self.selected_tile)
-            self.renderer.draw_pieces(self.state)
-            self.renderer.draw_available_moves(self.state, self.available_moves)
-
-    def get_selected_tile(self, mouse_pos):
-        x, y = mouse_pos
-        x //= TILE_SIZE
-        y //= TILE_SIZE
-        return y * COLS + x
 
     def deselect(self):
         self.selected_tile = None
@@ -57,53 +39,104 @@ class Application(object):
             )
         )
 
-    def handle_user_gameplay(self, event):
+    def gameplay_player_vs_player(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                break
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.user_selection_gameplay(event)
+                elif event.button == 3:
+                    self.user_undo_mechanism()
+
+    def gameplay_player_vs_computer(self):
+        # Let computer calculate his move:
+        if self.state.turn_color == Color.DARK:
+            move = self.ai.get_next_best_move(self.state)
+
+            if move:
+                self.state.do_move(move)
+
+                # TODO: Update game state when game is over...
+
+                self.stack_of_moves.append(move)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                break
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.user_selection_gameplay(event)
+                elif event.button == 3:
+                    # Undo twice so we end up move before computer started thinking:
+                    self.user_undo_mechanism()
+                    self.user_undo_mechanism()
+
+    def user_selection_gameplay(self, event):
+        # Selecting a move is a two step process,
+        # first being selecting brand new tile:
         if self.selected_tile is None:
-            selected = self.get_selected_tile(event.pos)
+            selected = get_selected_tile(event.pos)
             self.selected_tile = selected
+
+            # Calculating all valid moves that start in selected tile,
+            # accumulating them in self.available_moves:
             self.state.generate_moves_for_tile(selected, self.available_moves)
+
+            # If there are no valid moves deselct,
+            # and next selection starts from the beginning:
             if len(self.available_moves) == 0:
                 self.deselect()
         else:
-            selected = self.get_selected_tile(event.pos)
-            # Try finding the selected move:
+            # Second part of selecting a move consists of
+            # selecting one of the valid ending tiles:
+            selected = get_selected_tile(event.pos)
+
+            # So we filter all found moves so that we get a list
+            # of only those that end in the selected tile:
             found_moves = self.filter_available_moves(selected)
+
             # TODO: Give a choice when multiple moves lead to same place...
+
+            # If such move exists we use it:
             if len(found_moves) != 0:
                 self.state.do_move(found_moves[0])
+
+                # TODO: Update game state when game is over...
+
                 self.stack_of_moves.append(found_moves[0])
+
             self.deselect()
 
-    def handle_undo_gameplay(self):
-        if len(self.stack_of_moves) != 0:
-            self.deselect()
-            move = self.stack_of_moves.pop()
-            self.state.undo_move(move)
+    def user_undo_mechanism(self):
+        # Check if we made enough moves for undo operation:
+        if len(self.stack_of_moves) == 0:
+            return
+
+        self.deselect()
+        move = self.stack_of_moves.pop()
+        self.state.undo_move(move)
 
     def run(self):
         while self.running:
+            if self.game_state == GameState.MAIN_MENU:
+                pass
+            elif self.game_state == GameState.PLAYING:
+                if self.game_mode == GameMode.PLAYER_VS_PLAYER:
+                    self.gameplay_player_vs_player()
+                elif self.game_mode == GameMode.PLAYER_VS_COMPUTER:
+                    self.gameplay_player_vs_computer()
 
-            """if self.state.turn_color == Color.DARK:
-                move = self.ai.get_next_best_move(self.state)
-                if move:
-                    self.state.do_move(move)
-                    self.stack_of_moves.append(move)
-                    continue"""
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:  # Handle window close event
-                    self.running = False
-                #elif event.type == pygame.MOUSEBUTTONDOWN:
-                    #if event.button == 1:
-                        # self.handle_user_gameplay(event)
-                    # TODO: Add undo mechanism
-                    #if event.button == 3:
-                        #self.handle_undo_gameplay()
+                # Drawing when game state is PLAYING:
+                self.renderer.draw_tiles()
+                self.renderer.draw_selected(self.selected_tile)
+                self.renderer.draw_pieces(self.state)
+                self.renderer.draw_available_moves(self.state, self.available_moves)
+            else:
+                pass
 
-            self.draw_frame()
             pygame.display.flip()
-
-            move = self.ai.get_next_best_move(self.state)
-            if move:
-                self.state.do_move(move)
 
         pygame.quit()

@@ -1,6 +1,6 @@
 from move import EatenInfo, Move
 from piece import Color, Piece, Type
-from settings import *
+from utility import *
 
 
 class State(object):

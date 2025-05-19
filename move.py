@@ -1,5 +1,5 @@
 from piece import Color, Type
-from settings import COLS, ROWS
+from utility import COLS, ROWS
 
 
 class EatenInfo:

@@ -1,7 +1,7 @@
 import pygame
 
 from piece import *
-from settings import *
+from utility import *
 
 
 class Renderer(object):

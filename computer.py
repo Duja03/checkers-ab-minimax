@@ -1,21 +1,9 @@
 import math
 import time
 from copy import deepcopy
-from enum import Enum
 
 from piece import Color
-from settings import COLS, ROWS
-
-
-class TimeOutException(Exception):
-    pass
-
-
-class StateResult(Enum):
-    DRAW = 1
-    PLAYING = 2
-    LIGHT_WON = 3
-    DARK_WON = 4
+from utility import *
 
 
 class Computer(object):
