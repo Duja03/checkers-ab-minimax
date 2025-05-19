@@ -23,7 +23,7 @@ class Application(object):
         self.renderer = Renderer(self.window)
         self.state = State()
         self.game_state = GameState.PLAYING
-        self.ai = Computer(5, 5)
+        self.ai = Computer(3, 10)
 
         self.selected_tile = None
         self.available_moves = []
@@ -83,24 +83,27 @@ class Application(object):
     def run(self):
         while self.running:
 
-            if self.state.turn_color == Color.DARK:
-                move = self.ai.get_next_best_move(self.state, False)
+            """if self.state.turn_color == Color.DARK:
+                move = self.ai.get_next_best_move(self.state)
                 if move:
                     self.state.do_move(move)
                     self.stack_of_moves.append(move)
-                    continue
-
+                    continue"""
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:  # Handle window close event
                     self.running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        self.handle_user_gameplay(event)
+                #elif event.type == pygame.MOUSEBUTTONDOWN:
+                    #if event.button == 1:
+                        # self.handle_user_gameplay(event)
                     # TODO: Add undo mechanism
-                    if event.button == 3:
-                        self.handle_undo_gameplay()
+                    #if event.button == 3:
+                        #self.handle_undo_gameplay()
 
             self.draw_frame()
             pygame.display.flip()
+
+            move = self.ai.get_next_best_move(self.state)
+            if move:
+                self.state.do_move(move)
 
         pygame.quit()

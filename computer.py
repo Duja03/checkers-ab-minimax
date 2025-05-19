@@ -1,8 +1,14 @@
 import math
+import time
 from copy import deepcopy
 from enum import Enum
 
+from piece import Color
 from settings import COLS, ROWS
+
+
+class TimeOutException(Exception):
+    pass
 
 
 class StateResult(Enum):
@@ -20,27 +26,46 @@ class Computer(object):
         self.best_move = None
         self.cur_best_move = None
         self.max_player = None
+        self.start_time_point = None
 
     def state_is_terminal(self, state):
         return self.state_result(state) != StateResult.PLAYING
 
-    def get_next_best_move(self, state, max):
-        minimax_state = deepcopy(state)
-        alphabeta_state = deepcopy(state)
-        print("Thinking...")
-        self.minimax(minimax_state, 0, max)
-        print(f"Best move is {self.cur_best_move}")
+    def iterative_deepening(self, state, use_ab):
+        working_state = deepcopy(state)
+        max = working_state.turn_color == Color.LIGHT
 
-        print("Thinking with alpha-beta...")
-        self.alphabeta(alphabeta_state, -math.inf, math.inf, 0, max)
-        print(f"Best move (ab) is {self.cur_best_move}\n")
-        
-        return self.cur_best_move
+        self.best_move = None
+        self.start_time_point = time.perf_counter()
+
+        for d in range(1, self.max_depth + 1):
+            self.cur_max_depth = d
+            try:
+                if use_ab:
+                    self.alphabeta(working_state, -math.inf, math.inf, 0, max)
+                else:
+                    self.minimax(working_state, 0, max)
+                self.best_move = self.cur_best_move
+            except TimeOutException:
+                break
+
+        print(f"We reached depth {self.cur_max_depth}")
+        return self.best_move
+
+    def get_next_best_move(self, state, use_ab=True):
+        print("Thinking...")
+        best_move = self.iterative_deepening(state, use_ab)
+        print(f"Best move is {best_move}")
+        return best_move
 
     # Expect deep copy of a state as initial parameter state:
     def minimax(self, state, depth, max):
-        if self.state_is_terminal(state) or depth >= self.max_depth:
+        if time.perf_counter() - self.start_time_point > self.time_limit_sec:
+            raise TimeOutException()
+
+        if self.state_is_terminal(state) or depth >= self.cur_max_depth:
             return self.eval_state(state)
+
         if max:
             v = -math.inf
             for move in state.get_all_turn_moves():
@@ -64,8 +89,12 @@ class Computer(object):
         return v
 
     def alphabeta(self, state, alpha, beta, depth, max):
-        if self.state_is_terminal(state) or depth >= self.max_depth:
+        if time.perf_counter() - self.start_time_point > self.time_limit_sec:
+            raise TimeOutException()
+
+        if self.state_is_terminal(state) or depth >= self.cur_max_depth:
             return self.eval_state(state)
+
         if max:
             v = -math.inf
             for move in state.get_all_turn_moves():
