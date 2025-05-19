@@ -20,7 +20,7 @@ class Application(object):
         self.state = State()
 
         self.running = True
-        self.game_state = GameState.PLAYING
+        self.game_state = GameState.MAIN_MENU
         self.game_mode = GameMode.PLAYER_VS_COMPUTER
 
         self.selected_tile = None
@@ -38,6 +38,12 @@ class Application(object):
                 self.available_moves,
             )
         )
+
+    def gameplay_main_menu(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                break
 
     def gameplay_player_vs_player(self):
         for event in pygame.event.get():
@@ -122,7 +128,8 @@ class Application(object):
     def run(self):
         while self.running:
             if self.game_state == GameState.MAIN_MENU:
-                pass
+                self.gameplay_main_menu()
+                self.renderer.draw_main_menu()
             elif self.game_state == GameState.PLAYING:
                 if self.game_mode == GameMode.PLAYER_VS_PLAYER:
                     self.gameplay_player_vs_player()

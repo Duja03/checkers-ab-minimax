@@ -8,6 +8,21 @@ class Renderer(object):
     def __init__(self, window):
         self.window = window
 
+        self.header_font = pygame.font.Font("assets/Roboto-Black.ttf", HEADER_FONT_SIZE)
+        self.header_surface = self.header_font.render(
+            "CHECKERS", True, HEADER_FONT_COLOR
+        )
+        self.button_font = pygame.font.Font(None, 20)
+
+        self.main_menu_bg_image = pygame.transform.scale(
+            pygame.image.load("assets/main menu background.png"),
+            (SCREEN_WIDTH, SCREEN_HEIGHT),
+        )
+
+    def draw_main_menu(self):
+        self.window.blit(self.main_menu_bg_image, (0, 0))
+        self.window.blit(self.header_surface, (HEADER_X, HEADER_Y))
+
     def draw_tiles(self):
         for tile in range(ROWS * COLS):
             row = tile // ROWS
