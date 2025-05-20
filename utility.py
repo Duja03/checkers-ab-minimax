@@ -59,7 +59,8 @@ class StateResult(Enum):
 class GameState(Enum):
     MAIN_MENU = 1
     PLAYING = 2
-    GAME_OVER = 3
+    ENDING = 3
+    GAME_OVER = 4
 
 
 class GameMode(Enum):

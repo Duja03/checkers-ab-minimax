@@ -20,6 +20,7 @@ class Application(object):
         self.state = State()
 
         self.running = True
+        self.game_over_time = 0
         self.game_state = GameState.MAIN_MENU
         self.game_mode = GameMode.PLAYER_VS_COMPUTER
 
@@ -30,6 +31,7 @@ class Application(object):
     def reset(self):
         self.state = State()
         self.stack_of_moves = []
+        self.game_over_time = 0
         self.deselect()
 
     def deselect(self):
@@ -89,9 +91,9 @@ class Application(object):
             if move:
                 self.state.do_move(move)
                 self.stack_of_moves.append(move)
-
                 if self.state.is_terminal():
-                    self.game_state = GameState.GAME_OVER
+                    self.game_state = GameState.ENDING
+                    self.game_over_time = pygame.time.get_ticks()
                     return
 
         for event in pygame.event.get():
@@ -138,7 +140,8 @@ class Application(object):
                 self.stack_of_moves.append(found_moves[0])
 
                 if self.state.is_terminal():
-                    self.game_state = GameState.GAME_OVER
+                    self.game_state = GameState.ENDING
+                    self.game_over_time = pygame.time.get_ticks()
 
             self.deselect()
 
@@ -168,6 +171,18 @@ class Application(object):
                 self.renderer.draw_selected(self.selected_tile)
                 self.renderer.draw_pieces(self.state)
                 self.renderer.draw_available_moves(self.state, self.available_moves)
+
+            elif self.game_state == GameState.ENDING:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                        break
+
+                self.renderer.draw_tiles()
+                self.renderer.draw_pieces(self.state)
+
+                if pygame.time.get_ticks() - self.game_over_time >= 2500:
+                    self.game_state = GameState.GAME_OVER
 
             else:
                 self.gameplay_game_over()
